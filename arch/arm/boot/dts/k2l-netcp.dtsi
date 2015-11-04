@@ -401,3 +401,27 @@ netcp: netcp@26000000 {
 		};
 	};
 };
+
+crypto@26080000 {
+	compatible = "ti,netcp-sa-crypto";
+	label = "crypto-gbe";
+	reg = <0x26080000 0x40000>;
+	clocks = <&clksa>;
+
+	ti,navigator-dmas = <&dma_gbe 26>, <&dma_gbe 18>;
+	ti,navigator-dma-names = "crypto-rx", "crypto-tx";
+
+	ti,rx-channel = "crypto-rx";
+	ti,rx-queue-depth = <256 64 0 0>;
+	ti,rx-buffer-size = <1500 4096 0 0>;
+	ti,rx-compl-queue = <536>;
+	ti,rx-pool	= <512 12>;
+
+	ti,tx-channel = "crypto-tx";
+	ti,tx-queue-depth = <256>;
+	ti,tx-completion-queue = <537>;
+	ti,tx-pool = <512 12>;
+	ti,tx-submit-queue = <914>;
+
+	ti,sc-id = <0x7000 0x71ff>;
+};
