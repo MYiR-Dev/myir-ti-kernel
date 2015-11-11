@@ -25,11 +25,14 @@
 #include <linux/of_address.h>
 #include <linux/regmap.h>
 #include <linux/if_vlan.h>
+#include <linux/ptp_classify.h>
+#include <linux/net_tstamp.h>
 #include <linux/ethtool.h>
 #include <linux/phy/phy.h>
 
 #include "cpsw_ale.h"
 #include "netcp.h"
+#include "netcp_cpts.h"
 
 #define NETCP_DRIVER_NAME		"TI KeyStone Ethernet Driver"
 #define NETCP_DRIVER_VERSION		"v1.0"
@@ -57,6 +60,7 @@
 #define GBE13_EMAC_OFFSET		0x100
 #define GBE13_SLAVE_PORT2_OFFSET	0x200
 #define GBE13_HW_STATS_OFFSET		0x300
+#define GBE13_CPTS_OFFSET		0x500
 #define GBE13_ALE_OFFSET		0x600
 #define GBE13_HOST_PORT_NUM		0
 #define GBE13_NUM_ALE_ENTRIES		1024
@@ -88,6 +92,7 @@
 #define GBENU_SLAVE_PORT_OFFSET		0x2000
 #define GBENU_EMAC_OFFSET		0x2330
 #define GBENU_HW_STATS_OFFSET		0x1a000
+#define GBENU_CPTS_OFFSET		0x1d000
 #define GBENU_ALE_OFFSET		0x1e000
 #define GBENU_HOST_PORT_NUM		0
 #define GBENU_NUM_ALE_ENTRIES		1024
@@ -103,6 +108,7 @@
 #define XGBE10_HOST_PORT_OFFSET		0x34
 #define XGBE10_SLAVE_PORT_OFFSET	0x64
 #define XGBE10_EMAC_OFFSET		0x400
+#define XGBE10_CPTS_OFFSET		0x600
 #define XGBE10_ALE_OFFSET		0x700
 #define XGBE10_HW_STATS_OFFSET		0x800
 #define XGBE10_HOST_PORT_NUM		0
@@ -165,6 +171,7 @@
 
 #define GBE_TX_QUEUE				648
 #define	GBE_TXHOOK_ORDER			0
+#define	GBE_RXHOOK_ORDER			0
 #define GBE_DEFAULT_ALE_AGEOUT			30
 #define SLAVE_LINK_IS_XGMII(s) ((s)->link_interface >= XGMII_LINK_MAC_PHY)
 #define SLAVE_LINK_IS_RGMII(s) \
@@ -185,6 +192,73 @@
 
 #define MAX_NUM_SERDES				2
 #define SGMII_MODULE_SIZE			0x100
+#define MAX_SLAVES				8
+
+#ifdef CONFIG_TI_KEYSTONE_NETCP_CPTS
+/* Px_TS_CTL register fields */
+#define TS_RX_ANX_F_EN				BIT(0)
+#define TS_RX_VLAN_LT1_EN			BIT(1)
+#define TS_RX_VLAN_LT2_EN			BIT(2)
+#define TS_RX_ANX_D_EN				BIT(3)
+#define TS_TX_ANX_F_EN				BIT(4)
+#define TS_TX_VLAN_LT1_EN			BIT(5)
+#define TS_TX_VLAN_LT2_EN			BIT(6)
+#define TS_TX_ANX_D_EN				BIT(7)
+#define TS_LT2_EN				BIT(8)
+#define TS_RX_ANX_E_EN				BIT(9)
+#define TS_TX_ANX_E_EN				BIT(10)
+#define TS_MSG_TYPE_EN_SHIFT			16
+#define TS_MSG_TYPE_EN_MASK			0xffff
+
+/* Px_TS_SEQ_LTYPE register fields */
+#define TS_LTYPE1_SHIFT				0
+#define TS_LTYPE1_MASK				0xffff
+#define TS_SEQ_ID_OFS_SHIFT			16
+#define TS_SEQ_ID_OFS_MASK			0x3f
+
+/* Px_TS_VLAN_LTYPE register fields */
+#define TS_VLAN_LTYPE1_SHIFT			0
+#define TS_VLAN_LTYPE1_MASK			0xffff
+#define TS_VLAN_LTYPE2_SHIFT			16
+#define TS_VLAN_LTYPE2_MASK			0xffff
+
+/* Px_TS_CTL_LTYPE2 register fields */
+#define TS_LTYPE2_SHIFT				0
+#define TS_LTYPE2_MASK				0xffff
+#define TS_107					BIT(16)
+#define TS_129					BIT(17)
+#define TS_130					BIT(18)
+#define TS_131					BIT(19)
+#define TS_132					BIT(20)
+#define TS_319					BIT(21)
+#define TS_320					BIT(22)
+#define TS_TTL_NONZERO				BIT(23)
+#define TS_UNI_EN				BIT(24)
+#define TS_UNI_EN_SHIFT				24
+
+/* Px_TS_CTL2 */
+#define TS_MCAST_TYPE_EN_SHIFT			0
+#define TS_MCAST_TYPE_EN_MASK			0xff
+#define TS_DOMAIN_OFFSET_SHIFT			16
+#define TS_DOMAIN_OFFSET_MASK			0x3f
+
+#define TS_TX_ANX_ALL_EN	 \
+	(TS_TX_ANX_D_EN	| TS_TX_ANX_E_EN | TS_TX_ANX_F_EN)
+
+#define TS_RX_ANX_ALL_EN	 \
+	(TS_RX_ANX_D_EN	| TS_RX_ANX_E_EN | TS_RX_ANX_F_EN)
+
+#define TS_CTL_DST_PORT				TS_319
+#define TS_CTL_DST_PORT_SHIFT			21
+
+#define TS_CTL_MADDR_ALL	\
+	(TS_107 | TS_129 | TS_130 | TS_131 | TS_132)
+
+#define TS_CTL_MADDR_SHIFT			16
+
+/* The PTP event messages - Sync, Delay_Req, Pdelay_Req, and Pdelay_Resp. */
+#define EVENT_MSG_BITS (BIT(0) | BIT(1) | BIT(2) | BIT(3))
+#endif /* CONFIG_TI_KEYSTONE_NETCP_CPTS */
 
 struct xgbe_ss_regs {
 	u32	id_ver;
@@ -635,6 +709,13 @@ struct gbe_hw_stats {
 #define GBE_MAX_HW_STAT_MODS			9
 #define GBE_HW_STATS_REG_MAP_SZ			0x100
 
+struct ts_ctl {
+	int	uni;
+	u8	dst_port_map;
+	u8	maddr_map;
+	u8	ts_mcast_type;
+};
+
 struct gbe_slave {
 	void __iomem			*port_regs;
 	void __iomem			*emac_regs;
@@ -649,6 +730,7 @@ struct gbe_slave {
 	u32				mac_control;
 	u8				phy_port_t;
 	struct device_node		*phy_node;
+	struct ts_ctl			ts_ctl;
 	struct list_head		slave_list;
 };
 
@@ -700,6 +782,14 @@ struct gbe_priv {
 	/*  Lock for updating the hwstats */
 	spinlock_t			hw_stats_lock;
 	struct phy			*serdes_phy[MAX_NUM_SERDES];
+
+	struct kobject			port_ts_kobj[MAX_SLAVES];
+	u32				cpts_rftclk_sel;
+	u32				cpts_clock_mult;
+	u32				cpts_clock_shift;
+	u32				cpts_clock_div;
+	int                             cpts_registered;
+	struct cpts			cpts;
 };
 
 struct gbe_intf {
@@ -1937,6 +2027,49 @@ static int keystone_set_settings(struct net_device *ndev,
 	return phy_ethtool_sset(phy, cmd);
 }
 
+#ifdef CONFIG_TI_KEYSTONE_NETCP_CPTS
+static int keystone_get_ts_info(struct net_device *ndev,
+				struct ethtool_ts_info *info)
+{
+	struct netcp_intf *netcp = netdev_priv(ndev);
+	struct gbe_intf *gbe_intf;
+
+	gbe_intf = keystone_get_intf_data(netcp);
+	if (!gbe_intf)
+		return -EINVAL;
+
+	info->so_timestamping =
+		SOF_TIMESTAMPING_TX_HARDWARE |
+		SOF_TIMESTAMPING_TX_SOFTWARE |
+		SOF_TIMESTAMPING_RX_HARDWARE |
+		SOF_TIMESTAMPING_RX_SOFTWARE |
+		SOF_TIMESTAMPING_SOFTWARE |
+		SOF_TIMESTAMPING_RAW_HARDWARE;
+	info->phc_index = gbe_intf->gbe_dev->cpts.phc_index;
+	info->tx_types =
+		(1 << HWTSTAMP_TX_OFF) |
+		(1 << HWTSTAMP_TX_ON);
+	info->rx_filters =
+		(1 << HWTSTAMP_FILTER_NONE) |
+		(1 << HWTSTAMP_FILTER_PTP_V1_L4_EVENT) |
+		(1 << HWTSTAMP_FILTER_PTP_V2_EVENT);
+	return 0;
+}
+#else
+static int keystone_get_ts_info(struct net_device *ndev,
+				struct ethtool_ts_info *info)
+{
+	info->so_timestamping =
+		SOF_TIMESTAMPING_TX_SOFTWARE |
+		SOF_TIMESTAMPING_RX_SOFTWARE |
+		SOF_TIMESTAMPING_SOFTWARE;
+	info->phc_index = -1;
+	info->tx_types = 0;
+	info->rx_filters = 0;
+	return 0;
+}
+#endif /* CONFIG_TI_KEYSTONE_NETCP_CPTS */
+
 static const struct ethtool_ops keystone_ethtool_ops = {
 	.get_drvinfo		= keystone_get_drvinfo,
 	.get_link		= ethtool_op_get_link,
@@ -1947,6 +2080,7 @@ static const struct ethtool_ops keystone_ethtool_ops = {
 	.get_ethtool_stats	= keystone_get_ethtool_stats,
 	.get_settings		= keystone_get_settings,
 	.set_settings		= keystone_set_settings,
+	.get_ts_info		= keystone_get_ts_info,
 };
 
 #define mac_hi(mac)	(((mac)[0] << 0) | ((mac)[1] << 8) |	\
@@ -2451,16 +2585,281 @@ static int gbe_del_vid(void *intf_priv, int vid)
 	return 0;
 }
 
+#ifdef CONFIG_TI_KEYSTONE_NETCP_CPTS
+#define HAS_PHY_TXTSTAMP(p) ((p)->drv && (p)->drv->txtstamp)
+#define HAS_PHY_RXTSTAMP(p) ((p)->drv && (p)->drv->rxtstamp)
+
+static void gbe_txtstamp(void *context, struct sk_buff *skb)
+{
+	struct gbe_intf *gbe_intf = context;
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+
+	netcp_cpts_tx_timestamp(&gbe_dev->cpts, skb);
+}
+
+static bool gbe_need_txtstamp(struct gbe_intf *gbe_intf,
+			      const struct netcp_packet *p_info)
+{
+	struct sk_buff *skb = p_info->skb;
+	unsigned int class = ptp_classify_raw(skb);
+
+	if (class == PTP_CLASS_NONE)
+		return false;
+
+	switch (class) {
+	case PTP_CLASS_V1_IPV4:
+	case PTP_CLASS_V1_IPV6:
+	case PTP_CLASS_V2_IPV4:
+	case PTP_CLASS_V2_IPV6:
+	case PTP_CLASS_V2_L2:
+	case (PTP_CLASS_V2_VLAN | PTP_CLASS_L2):
+	case (PTP_CLASS_V2_VLAN | PTP_CLASS_IPV4):
+	case (PTP_CLASS_V2_VLAN | PTP_CLASS_IPV6):
+		return true;
+	}
+
+	return false;
+}
+
+static int gbe_txtstamp_mark_pkt(struct gbe_intf *gbe_intf,
+				 struct netcp_packet *p_info)
+{
+	struct phy_device *phydev = p_info->skb->dev->phydev;
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+
+	if (!(skb_shinfo(p_info->skb)->tx_flags & SKBTX_HW_TSTAMP) ||
+	    !gbe_dev->cpts.tx_enable)
+		return 0;
+
+	/* If phy has the txtstamp api, assume it will do it.
+	 * We mark it here because skb_tx_timestamp() is called
+	 * after all the txhooks are called.
+	 */
+	if (phydev && HAS_PHY_TXTSTAMP(phydev)) {
+		skb_shinfo(p_info->skb)->tx_flags |= SKBTX_IN_PROGRESS;
+		return 0;
+	}
+
+	if (gbe_need_txtstamp(gbe_intf, p_info)) {
+		p_info->txtstamp = gbe_txtstamp;
+		p_info->ts_context = (void *)gbe_intf;
+		skb_shinfo(p_info->skb)->tx_flags |= SKBTX_IN_PROGRESS;
+	}
+
+	return 0;
+}
+
+static int gbe_rxtstamp(struct gbe_intf *gbe_intf, struct netcp_packet *p_info)
+{
+	struct phy_device *phydev = p_info->skb->dev->phydev;
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+
+	if (p_info->rxtstamp_complete)
+		return 0;
+
+	if (phydev && HAS_PHY_RXTSTAMP(phydev)) {
+		p_info->rxtstamp_complete = true;
+		return 0;
+	}
+
+	if (!netcp_cpts_rx_timestamp(&gbe_dev->cpts, p_info->skb))
+		p_info->rxtstamp_complete = true;
+
+	return 0;
+}
+
+static int gbe_hwtstamp_get(struct gbe_intf *gbe_intf, struct ifreq *ifr)
+{
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+	struct cpts *cpts = &gbe_dev->cpts;
+	struct hwtstamp_config cfg;
+
+	cfg.flags = 0;
+	cfg.tx_type = cpts->tx_enable ? HWTSTAMP_TX_ON : HWTSTAMP_TX_OFF;
+	cfg.rx_filter = (cpts->rx_enable ?
+			 cpts->rx_enable : HWTSTAMP_FILTER_NONE);
+
+	return copy_to_user(ifr->ifr_data, &cfg, sizeof(cfg)) ? -EFAULT : 0;
+}
+
+static void gbe_hwtstamp(struct gbe_intf *gbe_intf)
+{
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+	struct gbe_slave *slave = gbe_intf->slave;
+	u32 ts_en, seq_id, ctl;
+
+	if (!gbe_dev->cpts.tx_enable && !gbe_dev->cpts.rx_enable) {
+		writel(0, GBE_REG_ADDR(slave, port_regs, ts_ctl));
+		return;
+	}
+
+	seq_id = (30 << TS_SEQ_ID_OFS_SHIFT) | ETH_P_1588;
+	ts_en = EVENT_MSG_BITS << TS_MSG_TYPE_EN_SHIFT;
+	ctl = ETH_P_1588 | TS_TTL_NONZERO |
+		(slave->ts_ctl.dst_port_map << TS_CTL_DST_PORT_SHIFT) |
+		(slave->ts_ctl.uni ?  TS_UNI_EN :
+			slave->ts_ctl.maddr_map << TS_CTL_MADDR_SHIFT);
+
+	if (gbe_dev->cpts.tx_enable)
+		ts_en |= (TS_TX_ANX_ALL_EN | TS_TX_VLAN_LT1_EN);
+
+	if (gbe_dev->cpts.rx_enable)
+		ts_en |= (TS_RX_ANX_ALL_EN | TS_RX_VLAN_LT1_EN);
+
+	writel(ts_en,  GBE_REG_ADDR(slave, port_regs, ts_ctl));
+	writel(seq_id, GBE_REG_ADDR(slave, port_regs, ts_seq_ltype));
+	writel(ctl,    GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+}
+
+static int gbe_hwtstamp_set(struct gbe_intf *gbe_intf, struct ifreq *ifr)
+{
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+	struct cpts *cpts = &gbe_dev->cpts;
+	struct hwtstamp_config cfg;
+
+	if (!cpts->reg)
+		return -EOPNOTSUPP;
+
+	if (copy_from_user(&cfg, ifr->ifr_data, sizeof(cfg)))
+		return -EFAULT;
+
+	/* reserved for future extensions */
+	if (cfg.flags)
+		return -EINVAL;
+
+	switch (cfg.tx_type) {
+	case HWTSTAMP_TX_OFF:
+		cpts->tx_enable = 0;
+		break;
+	case HWTSTAMP_TX_ON:
+		cpts->tx_enable = 1;
+		break;
+	default:
+		return -ERANGE;
+	}
+
+	switch (cfg.rx_filter) {
+	case HWTSTAMP_FILTER_NONE:
+		cpts->rx_enable = 0;
+		break;
+	case HWTSTAMP_FILTER_ALL:
+	case HWTSTAMP_FILTER_PTP_V1_L4_EVENT:
+	case HWTSTAMP_FILTER_PTP_V1_L4_SYNC:
+	case HWTSTAMP_FILTER_PTP_V1_L4_DELAY_REQ:
+		cpts->rx_enable = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
+		cfg.rx_filter = HWTSTAMP_FILTER_PTP_V1_L4_EVENT;
+		break;
+	case HWTSTAMP_FILTER_PTP_V2_L4_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_L4_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_L4_DELAY_REQ:
+	case HWTSTAMP_FILTER_PTP_V2_L2_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_L2_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_L2_DELAY_REQ:
+	case HWTSTAMP_FILTER_PTP_V2_EVENT:
+	case HWTSTAMP_FILTER_PTP_V2_SYNC:
+	case HWTSTAMP_FILTER_PTP_V2_DELAY_REQ:
+		cpts->rx_enable = HWTSTAMP_FILTER_PTP_V2_EVENT;
+		cfg.rx_filter = HWTSTAMP_FILTER_PTP_V2_EVENT;
+		break;
+	default:
+		return -ERANGE;
+	}
+
+	gbe_hwtstamp(gbe_intf);
+
+	return copy_to_user(ifr->ifr_data, &cfg, sizeof(cfg)) ? -EFAULT : 0;
+}
+
+static void gbe_register_cpts(struct gbe_priv *gbe_dev)
+{
+	if (!gbe_dev->cpts.reg)
+		return;
+
+	if (gbe_dev->cpts_registered < 0)
+		/* Should not happen */
+		return;
+
+	if (gbe_dev->cpts_registered > 0)
+		goto done;
+
+	if (netcp_cpts_register(gbe_dev->dev, &gbe_dev->cpts,
+				gbe_dev->cpts_clock_mult,
+				gbe_dev->cpts_clock_shift,
+				gbe_dev->cpts_clock_div)) {
+		dev_err(gbe_dev->dev, "error registering cpts device\n");
+		return;
+	}
+
+done:
+	++gbe_dev->cpts_registered;
+}
+
+static void gbe_unregister_cpts(struct gbe_priv *gbe_dev)
+{
+	if (!gbe_dev->cpts.reg || (gbe_dev->cpts_registered <= 0))
+		return;
+
+	if (--gbe_dev->cpts_registered)
+		return;
+
+	netcp_cpts_unregister(&gbe_dev->cpts);
+}
+#else
+static inline int gbe_txtstamp_mark_pkt(struct gbe_intf *gbe_intf,
+					struct netcp_packet *p_info)
+{
+	return 0;
+}
+
+static inline int gbe_rxtstamp(struct gbe_intf *gbe_intf,
+			       struct netcp_packet *p_info)
+{
+	return 0;
+}
+
+static inline int gbe_hwtstamp(struct gbe_intf *gbe_intf,
+			       struct ifreq *ifr, int cmd)
+{
+	return -EOPNOTSUPP;
+}
+
+static inline void gbe_register_cpts(struct gbe_priv *gbe_dev)
+{
+}
+
+static inline void gbe_unregister_cpts(struct gbe_priv *gbe_dev)
+{
+}
+
+static inline int gbe_hwtstamp_get(struct gbe_intf *gbe_intf, struct ifreq *req)
+{
+	return -EOPNOTSUPP;
+}
+
+static inline int gbe_hwtstamp_set(struct gbe_intf *gbe_intf, struct ifreq *req)
+{
+	return -EOPNOTSUPP;
+}
+#endif /* CONFIG_TI_KEYSTONE_NETCP_CPTS */
+
 static int gbe_ioctl(void *intf_priv, struct ifreq *req, int cmd)
 {
 	struct gbe_intf *gbe_intf = intf_priv;
 	struct phy_device *phy = gbe_intf->slave->phy;
-	int ret = -EOPNOTSUPP;
+
+	if (!phy || !phy->drv->hwtstamp) {
+		switch (cmd) {
+		case SIOCGHWTSTAMP:
+			return gbe_hwtstamp_get(gbe_intf, req);
+		case SIOCSHWTSTAMP:
+			return gbe_hwtstamp_set(gbe_intf, req);
+		}
+	}
 
 	if (phy)
-		ret = phy_mii_ioctl(phy, req, cmd);
+		return phy_mii_ioctl(phy, req, cmd);
 
-	return ret;
+	return -EOPNOTSUPP;
 }
 
 static void netcp_ethss_timer(unsigned long arg)
@@ -2496,12 +2895,20 @@ static void netcp_ethss_timer(unsigned long arg)
 	add_timer(&gbe_dev->timer);
 }
 
-static int gbe_tx_hook(int order, void *data, struct netcp_packet *p_info)
+static int gbe_txhook(int order, void *data, struct netcp_packet *p_info)
 {
 	struct gbe_intf *gbe_intf = data;
 
 	p_info->tx_pipe = &gbe_intf->tx_pipe;
-	return 0;
+
+	return gbe_txtstamp_mark_pkt(gbe_intf, p_info);
+}
+
+static int gbe_rxhook(int order, void *data, struct netcp_packet *p_info)
+{
+	struct gbe_intf *gbe_intf = data;
+
+	return gbe_rxtstamp(gbe_intf, p_info);
 }
 
 static int gbe_open(void *intf_priv, struct net_device *ndev)
@@ -2551,11 +2958,14 @@ static int gbe_open(void *intf_priv, struct net_device *ndev)
 	if (ret)
 		goto fail;
 
-	netcp_register_txhook(netcp, GBE_TXHOOK_ORDER, gbe_tx_hook,
-			      gbe_intf);
+	netcp_register_txhook(netcp, GBE_TXHOOK_ORDER, gbe_txhook, gbe_intf);
+	netcp_register_rxhook(netcp, GBE_RXHOOK_ORDER, gbe_rxhook, gbe_intf);
 
 	slave->open = true;
 	netcp_ethss_update_link_state(gbe_dev, slave, ndev);
+
+	gbe_register_cpts(gbe_dev);
+
 	return 0;
 
 fail:
@@ -2567,15 +2977,503 @@ static int gbe_close(void *intf_priv, struct net_device *ndev)
 {
 	struct gbe_intf *gbe_intf = intf_priv;
 	struct netcp_intf *netcp = netdev_priv(ndev);
+	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
+
+	gbe_unregister_cpts(gbe_dev);
 
 	gbe_slave_stop(gbe_intf);
-	netcp_unregister_txhook(netcp, GBE_TXHOOK_ORDER, gbe_tx_hook,
-				gbe_intf);
+
+	netcp_unregister_rxhook(netcp, GBE_RXHOOK_ORDER, gbe_rxhook, gbe_intf);
+	netcp_unregister_txhook(netcp, GBE_TXHOOK_ORDER, gbe_txhook, gbe_intf);
 
 	gbe_intf->slave->open = false;
 	atomic_set(&gbe_intf->slave->link_state, NETCP_LINK_STATE_INVALID);
 	return 0;
 }
+
+#ifdef CONFIG_TI_KEYSTONE_NETCP_CPTS
+static void init_slave_ts_ctl(struct gbe_slave *slave)
+{
+	slave->ts_ctl.uni = 1;
+	slave->ts_ctl.dst_port_map =
+		(TS_CTL_DST_PORT >> TS_CTL_DST_PORT_SHIFT) & 0x3;
+	slave->ts_ctl.maddr_map =
+		(TS_CTL_MADDR_ALL >> TS_CTL_MADDR_SHIFT) & 0x1f;
+}
+
+static int gbe_of_parse_cpts(struct gbe_priv *gbe_dev,
+			     struct device_node *node)
+{
+	if (of_property_read_u32(node, "rftclk_sel",
+				 &gbe_dev->cpts.rftclk_sel)) {
+		dev_warn(gbe_dev->dev, "use default cpts rftclk_sel 0\n");
+		gbe_dev->cpts.rftclk_sel = 0;
+	}
+
+	if (of_property_read_u32(node, "rftclk_freq",
+				 &gbe_dev->cpts.rftclk_freq)) {
+		gbe_dev->cpts.rftclk_freq = 0;
+	}
+
+	if (of_property_read_u32(node, "clock_mult",
+				 &gbe_dev->cpts_clock_mult)) {
+		gbe_dev->cpts_clock_mult = 0;
+	}
+
+	if (of_property_read_u32(node, "clock_shift",
+				 &gbe_dev->cpts_clock_shift)) {
+		gbe_dev->cpts_clock_shift = 0;
+	}
+
+	if (of_property_read_u32(node, "clock_div",
+				 &gbe_dev->cpts_clock_div)) {
+		gbe_dev->cpts_clock_div = 1;
+	}
+
+	if (of_property_read_u32(node, "ts_comp_length",
+				 &gbe_dev->cpts.ts_comp_length)) {
+		gbe_dev->cpts.ts_comp_length = 0;
+	}
+
+	if (of_property_read_u32(node, "ts_comp_polarity",
+				 &gbe_dev->cpts.ts_comp_polarity)) {
+		gbe_dev->cpts.ts_comp_polarity = 1;
+	}
+
+	return 0;
+}
+
+struct gbe_ts_attribute {
+	struct attribute attr;
+	ssize_t (*show)(struct gbe_priv *gbe_dev,
+			struct gbe_ts_attribute *attr, char *buf, void *);
+	ssize_t	(*store)(struct gbe_priv *gbe_dev,
+			 struct gbe_ts_attribute *attr,
+			 const char *, size_t, void *);
+};
+
+#define to_gbe_ts_attr(_attr) \
+	container_of(_attr, struct gbe_ts_attribute, attr)
+
+#define __GBE_TS_ATTR(_name, _mode, _show, _store)			\
+	{								\
+		.attr = {.name = __stringify(_name), .mode = _mode },	\
+		.show	= _show,					\
+		.store	= _store,					\
+	}
+
+#define pts_to_gbe_dev(obj) container_of(obj, struct gbe_priv, pts_kobj)
+
+#define pts_n_to_gbe_dev(obj, n) \
+	container_of(obj, struct gbe_priv, port_ts_kobj[n])
+
+struct gbe_slave *gbe_port_num_get_slave(struct gbe_priv *gbe_dev, int port)
+{
+	struct gbe_intf *gbe_intf;
+
+	for_each_intf(gbe_intf, gbe_dev) {
+		if (gbe_intf->slave->port_num == port)
+			return gbe_intf->slave;
+	}
+	return NULL;
+}
+
+static ssize_t gbe_port_ts_uni_show(struct gbe_priv *gbe_dev,
+				    struct gbe_ts_attribute *attr,
+				    char *buf, void *context)
+{
+	struct gbe_slave *slave;
+	int len, port;
+	u32 reg;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(buf, PAGE_SIZE, "%lu\n",
+		       ((reg & TS_UNI_EN) >> TS_UNI_EN_SHIFT));
+
+	return len;
+}
+
+static ssize_t gbe_port_ts_uni_store(struct gbe_priv *gbe_dev,
+				     struct gbe_ts_attribute *attr,
+				     const char *buf, size_t count,
+				     void *context)
+{
+	struct gbe_slave *slave;
+	int port, val;
+	u32 reg, mode;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	if (kstrtoint(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	if (val)
+		mode = TS_UNI_EN;
+	else
+		mode = (slave->ts_ctl.maddr_map << TS_CTL_MADDR_SHIFT);
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	reg &= ~(TS_UNI_EN | TS_CTL_MADDR_ALL);
+	reg |= mode;
+	writel(reg, GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+
+	slave->ts_ctl.uni = (val ? 1 : 0);
+	return count;
+}
+
+static struct gbe_ts_attribute gbe_pts_uni_attribute =
+				__GBE_TS_ATTR(uni_en, S_IRUGO | S_IWUSR,
+					      gbe_port_ts_uni_show,
+					      gbe_port_ts_uni_store);
+
+static ssize_t gbe_port_ts_maddr_show(struct gbe_priv *gbe_dev,
+				      struct gbe_ts_attribute *attr,
+				      char *buf, void *context)
+{
+	struct gbe_slave *slave;
+	int len, port;
+	u32 reg;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(buf, PAGE_SIZE, "%02x\n",
+		       (reg >> TS_CTL_MADDR_SHIFT) & 0x1f);
+	return len;
+}
+
+static ssize_t gbe_port_ts_maddr_store(struct gbe_priv *gbe_dev,
+				       struct gbe_ts_attribute *attr,
+				       const char *buf, size_t count,
+				       void *context)
+{
+	struct gbe_slave *slave;
+	int port;
+	u32 reg;
+	u8 val;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	if (kstrtou8(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	reg &= ~TS_CTL_MADDR_ALL;
+	reg |= ((val & 0x1f) << TS_CTL_MADDR_SHIFT);
+	writel(reg, GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+
+	slave->ts_ctl.maddr_map = val & 0x1f;
+	return count;
+}
+
+static struct gbe_ts_attribute gbe_pts_maddr_attribute =
+				__GBE_TS_ATTR(mcast_addr, S_IRUGO | S_IWUSR,
+					      gbe_port_ts_maddr_show,
+					      gbe_port_ts_maddr_store);
+
+static ssize_t gbe_port_ts_dst_port_show(struct gbe_priv *gbe_dev,
+					 struct gbe_ts_attribute *attr,
+					 char *buf, void *context)
+{
+	struct gbe_slave *slave;
+	int len, port;
+	u32 reg;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(buf, PAGE_SIZE, "%01x\n",
+		       (reg >> TS_CTL_DST_PORT_SHIFT) & 0x3);
+	return len;
+}
+
+static ssize_t gbe_port_ts_dst_port_store(struct gbe_priv *gbe_dev,
+					  struct gbe_ts_attribute *attr,
+					  const char *buf, size_t count,
+					  void *context)
+{
+	struct gbe_slave *slave;
+	int port;
+	u32 reg;
+	u8 val;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	if (kstrtou8(buf, 0, &val) < 0)
+		return -EINVAL;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	reg &= ~TS_CTL_DST_PORT;
+	reg |= ((val & 0x3) << TS_CTL_DST_PORT_SHIFT);
+	writel(reg, GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+
+	slave->ts_ctl.dst_port_map = val & 0x3;
+	return count;
+}
+
+static struct gbe_ts_attribute gbe_pts_dst_port_attribute =
+				__GBE_TS_ATTR(dst_port, S_IRUGO | S_IWUSR,
+					      gbe_port_ts_dst_port_show,
+					      gbe_port_ts_dst_port_store);
+
+static ssize_t gbe_port_ts_config_show(struct gbe_priv *gbe_dev,
+				       struct gbe_ts_attribute *attr,
+				       char *buf, void *context)
+{
+	struct gbe_slave *slave;
+	int len, port, total_len = 0;
+	u32 reg;
+	char *p = buf;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(p, PAGE_SIZE, "%08x ", reg);
+	p += len;
+	total_len += len;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(p, PAGE_SIZE, "%08x ", reg);
+	p += len;
+	total_len += len;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(p, PAGE_SIZE, "%08x ", reg);
+	p += len;
+	total_len += len;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(p, PAGE_SIZE, "%08x ", reg);
+	p += len;
+	total_len += len;
+
+	reg = readl(GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2));
+	len = snprintf(p, PAGE_SIZE, "%08x\n", reg);
+	p += len;
+	total_len += len;
+
+	return total_len;
+}
+
+static ssize_t gbe_port_ts_config_store(struct gbe_priv *gbe_dev,
+					struct gbe_ts_attribute *attr,
+					const char *buf, size_t count,
+					void *context)
+{
+	struct gbe_slave *slave;
+	unsigned long reg, val;
+	int len, port;
+	char tmp_str[4];
+	u8 reg_num = 0;
+	u32 __iomem *p;
+
+	port = (int)context;
+
+	slave = gbe_port_num_get_slave(gbe_dev, port);
+	if (!slave)
+		return 0;
+
+	len = strcspn(buf, " ");
+	if (len > 1)
+		return -ENOMEM;
+
+	strncpy(tmp_str, buf, len);
+	tmp_str[len] = '\0';
+	if (kstrtou8(tmp_str, 0, &reg_num))
+		return -EINVAL;
+
+	buf += (len + 1);
+	if (kstrtoul(buf, 0, &val))
+		return -EINVAL;
+
+	switch (reg_num) {
+	case 1:
+		p = GBE_REG_ADDR(slave, port_regs, ts_ctl);
+		break;
+	case 2:
+		p = GBE_REG_ADDR(slave, port_regs, ts_seq_ltype);
+		break;
+	case 3:
+		p = GBE_REG_ADDR(slave, port_regs, ts_vlan);
+		break;
+	case 4:
+		p = GBE_REG_ADDR(slave, port_regs, ts_ctl_ltype2);
+		break;
+	case 5:
+		p = GBE_REG_ADDR(slave, port_regs, ts_ctl2);
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	reg = readl(p);
+	if (reg != val)
+		writel(val, p);
+
+	return count;
+}
+
+static struct gbe_ts_attribute gbe_pts_config_attribute =
+				__GBE_TS_ATTR(config, S_IRUGO | S_IWUSR,
+					      gbe_port_ts_config_show,
+					      gbe_port_ts_config_store);
+
+static struct attribute *gbe_pts_n_default_attrs[] = {
+	&gbe_pts_uni_attribute.attr,
+	&gbe_pts_maddr_attribute.attr,
+	&gbe_pts_dst_port_attribute.attr,
+	&gbe_pts_config_attribute.attr,
+	NULL
+};
+
+struct gbe_priv *gbe_port_ts_kobj_to_priv(struct kobject *kobj, int *port)
+{
+	char name[4];
+	struct gbe_priv *gbe_dev;
+	struct kobject *kobj_0;
+	int i = 0;
+
+	*port = -1;
+
+	while (i < MAX_SLAVES) {
+		snprintf(name, sizeof(name), "%d", i + 1);
+		if (strncmp(name, kobject_name(kobj), strlen(name)) == 0)
+			*port = i + 1;
+		i++;
+	}
+
+	if (*port < 0)
+		return NULL;
+
+	kobj_0 = kobj - (*port - 1);
+	gbe_dev = pts_n_to_gbe_dev(kobj_0, 0);
+	return gbe_dev;
+}
+
+static ssize_t gbe_pts_n_attr_show(struct kobject *kobj,
+				   struct attribute *attr, char *buf)
+{
+	struct gbe_ts_attribute *attribute = to_gbe_ts_attr(attr);
+	struct gbe_priv *gbe_dev;
+	int port = -1;
+
+	if (!attribute->show)
+		return -EIO;
+
+	gbe_dev = gbe_port_ts_kobj_to_priv(kobj, &port);
+	if (!gbe_dev)
+		return -EIO;
+
+	return attribute->show(gbe_dev, attribute, buf, (void *)port);
+}
+
+static ssize_t gbe_pts_n_attr_store(struct kobject *kobj,
+				    struct attribute *attr,
+				    const char *buf, size_t count)
+{
+	struct gbe_ts_attribute *attribute = to_gbe_ts_attr(attr);
+	struct gbe_priv *gbe_dev;
+	int port = -1;
+
+	if (!attribute->store)
+		return -EIO;
+
+	gbe_dev = gbe_port_ts_kobj_to_priv(kobj, &port);
+	if (!gbe_dev)
+		return -EIO;
+
+	return attribute->store(gbe_dev, attribute, buf, count, (void *)port);
+}
+
+static const struct sysfs_ops gbe_pts_n_sysfs_ops = {
+	.show = gbe_pts_n_attr_show,
+	.store = gbe_pts_n_attr_store,
+};
+
+static struct kobj_type gbe_pts_n_ktype = {
+	.sysfs_ops = &gbe_pts_n_sysfs_ops,
+	.default_attrs = gbe_pts_n_default_attrs,
+};
+
+static int gbe_create_cpts_sysfs(struct gbe_priv *gbe_dev)
+{
+	struct kobject *pts_kobj;
+	char name[4];
+	int i, ret;
+
+	pts_kobj = kobject_create_and_add("port_ts",
+					  kobject_get(&gbe_dev->dev->kobj));
+	if (!pts_kobj) {
+		dev_err(gbe_dev->dev,
+			"failed to create sysfs port_ts entry\n");
+		kobject_put(&gbe_dev->dev->kobj);
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < gbe_dev->num_slaves; i++) {
+		snprintf(name, sizeof(name), "%d", i + 1);
+		ret = kobject_init_and_add(&gbe_dev->port_ts_kobj[i],
+					   &gbe_pts_n_ktype,
+					   kobject_get(pts_kobj), name);
+
+		if (ret) {
+			dev_err(gbe_dev->dev,
+				"failed to create sysfs port_ts/%s entry\n",
+				name);
+			kobject_put(&gbe_dev->port_ts_kobj[i]);
+			kobject_put(pts_kobj);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+#else
+static void init_slave_ts_ctl(struct gbe_slave *slave)
+{
+}
+
+static int gbe_of_parse_cpts(struct gbe_priv *gbe_dev,
+			     struct device_node *node)
+{
+	return 0;
+}
+
+static int gbe_create_cpts_sysfs(struct gbe_priv *gbe_dev)
+{
+	return 0;
+}
+#endif /* CONFIG_TI_KEYSTONE_NETCP_CPTS */
 
 static int init_slave(struct gbe_priv *gbe_dev, struct gbe_slave *slave,
 		      struct device_node *node)
@@ -2692,6 +3590,8 @@ static int init_slave(struct gbe_priv *gbe_dev, struct gbe_slave *slave,
 	}
 
 	atomic_set(&slave->link_state, NETCP_LINK_STATE_INVALID);
+
+	init_slave_ts_ctl(slave);
 	return 0;
 }
 
@@ -2895,6 +3795,7 @@ static int set_xgbe_ethss10_priv(struct gbe_priv *gbe_dev,
 			XGBE10_HW_STATS_OFFSET + (GBE_HW_STATS_REG_MAP_SZ * i);
 
 	gbe_dev->ale_reg = gbe_dev->switch_regs + XGBE10_ALE_OFFSET;
+	gbe_dev->cpts.reg = gbe_dev->switch_regs + XGBE10_CPTS_OFFSET;
 	gbe_dev->ale_ports = gbe_dev->max_num_ports;
 	gbe_dev->host_port = XGBE10_HOST_PORT_NUM;
 	gbe_dev->ale_entries = XGBE10_NUM_ALE_ENTRIES;
@@ -3058,6 +3959,7 @@ static int set_gbe_ethss14_priv(struct gbe_priv *gbe_dev,
 			(GBE_HW_STATS_REG_MAP_SZ * (i & 0x1));
 	}
 
+	gbe_dev->cpts.reg = gbe_dev->switch_regs + GBE13_CPTS_OFFSET;
 	gbe_dev->ale_reg = gbe_dev->switch_regs + GBE13_ALE_OFFSET;
 	gbe_dev->ale_ports = gbe_dev->max_num_ports;
 	gbe_dev->host_port = GBE13_HOST_PORT_NUM;
@@ -3167,6 +4069,7 @@ static int set_gbenu_ethss_priv(struct gbe_priv *gbe_dev,
 		gbe_dev->hw_stats_regs[i] = gbe_dev->switch_regs +
 			GBENU_HW_STATS_OFFSET + (GBENU_HW_STATS_REG_MAP_SZ * i);
 
+	gbe_dev->cpts.reg = gbe_dev->switch_regs + GBENU_CPTS_OFFSET;
 	gbe_dev->ale_reg = gbe_dev->switch_regs + GBENU_ALE_OFFSET;
 	gbe_dev->ale_ports = gbe_dev->max_num_ports;
 	gbe_dev->host_port = GBENU_HOST_PORT_NUM;
@@ -3201,6 +4104,7 @@ static int gbe_probe(struct netcp_device *netcp_device, struct device *dev,
 {
 	struct device_node *interfaces, *interface;
 	struct device_node *secondary_ports;
+	struct device_node *cpts_np;
 	struct cpsw_ale_params ale_params;
 	struct gbe_priv *gbe_dev;
 	struct phy *phy;
@@ -3299,6 +4203,15 @@ static int gbe_probe(struct netcp_device *netcp_device, struct device *dev,
 			goto exit_phys;
 	}
 
+	cpts_np = of_get_child_by_name(node, "cpts");
+	if (cpts_np && of_device_is_available(cpts_np))
+		ret = gbe_of_parse_cpts(gbe_dev, cpts_np);
+	else
+		ret = -ENODEV;
+
+	if (ret)
+		gbe_dev->cpts.reg = NULL;
+
 	interfaces = of_get_child_by_name(node, "interfaces");
 	if (!interfaces)
 		dev_err(dev, "could not find interfaces\n");
@@ -3371,6 +4284,10 @@ static int gbe_probe(struct netcp_device *netcp_device, struct device *dev,
 			gbe_reset_mod_stats(gbe_dev, i);
 	}
 	spin_unlock_bh(&gbe_dev->hw_stats_lock);
+
+	ret = gbe_create_cpts_sysfs(gbe_dev);
+	if (ret)
+		goto free_sec_ports;
 
 	init_timer(&gbe_dev->timer);
 	gbe_dev->timer.data	 = (unsigned long)gbe_dev;

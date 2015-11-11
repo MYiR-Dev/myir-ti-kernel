@@ -124,6 +124,30 @@ Optional properties:
 		see Documentation/devicetree/bindings/phy/ti-phy.txt
 		for Keystone SerDes device specificcations.
 
+- cpts:		sub-node containing properties related to cpts configurations.
+		Optional properties:
+		- rftclk_sel:
+			selects one of up to 32 clocks for time sync
+			reference.  Default = 0.
+		- rftclk_freq:
+			refernce clock frequency in HZ.  Default is
+			read from clock definition if exists.
+		- clock_mult/clock_shift/clock_mult:
+			used for converting time counter cycles to ns as in
+
+			ns = do_div (((cycles * clock_mult) >>
+				     clock_shift), clock_div)
+
+			Defaults: clock_mult, clock_shift = calculated,
+				  clock_div = 1.
+		- ts_comp_length:
+			When CPTS counter reaches a value written to
+			the TS_COMP_VAL register, it generates a pulse
+			of ts_comp_length clock periods on the TS_COMP
+			output pin.  Used for PPS by driver.  Default = 0.
+		- ts_comp_polarity:
+			Polarity of TS_COMP pulse.  Default = 1 (assert high).
+
 NetCP interface properties: Interface specification for NetCP sub-modules.
 Required properties:
 - rx-channel:	the navigator packet dma channel name for rx.
