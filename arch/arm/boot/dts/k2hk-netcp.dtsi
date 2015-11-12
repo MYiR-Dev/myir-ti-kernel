@@ -202,8 +202,8 @@ netcp: netcp@2000000 {
 	/* NetCP address range */
 	ranges  = <0 0x2000000 0x100000>;
 
-	clocks = <&clkpa>, <&clkcpgmac>, <&chipclk12>;
-	clock-names = "pa_clk", "ethss_clk", "cpts_rft_clk"	;
+	clocks = <&clkpa>, <&clkcpgmac>, <&chipclk13>;
+	clock-names = "pa_clk", "ethss_clk", "cpts";
 	dma-coherent;
 
 	ti,navigator-dmas =	<&dma_gbe 22>,	/* rx flow for CPSW port 0 */
@@ -244,6 +244,17 @@ netcp: netcp@2000000 {
 			tx-queue = <648>;
 			tx-channel = "nettx";
 			phys = <&gbe_serdes>;
+
+			cpts {
+				status = "ok";
+				rftclk_sel = <1>;
+				/*rftclk_freq = <400000000>;*/
+				clock_mult = <2560>;
+				clock_shift = <10>;
+				clock_div = <1>;
+				ts_comp_length = <3>;
+				ts_comp_polarity = <1>; /* 1 - assert high */
+			};
 
 			interfaces {
 				gbe0: interface-0 {
@@ -422,8 +433,8 @@ netcpx: netcp@2f00000 {
 	#size-cells	= <1>;
 	ranges;
 
-	clocks		= <&clkxge>;
-	clock-names	= "clk_xge";
+	clocks		= <&clkxge>, <&chipclk13>;
+	clock-names	= "clk_xge", "cpts";
 	dma-coherent;
 	/* big-endian; */
 
@@ -446,6 +457,17 @@ netcpx: netcp@2f00000 {
 			tx-queue = <8752>;
 			tx-channel = "xnettx";
 			phys = <&xgbe_serdes>;
+
+			cpts {
+				status = "ok";
+				rftclk_sel = <1>;
+				/*rftclk_freq = <400000000>;*/
+				/*clock_mult = <2560>;*/
+				/*clock_shift = <10>;*/
+				/*clock_div = <1>;*/
+				ts_comp_length = <3>;
+				ts_comp_polarity = <1>; /* 1 - assert high */
+			};
 
 			interfaces {
 				xgbe0: interface-0 {
