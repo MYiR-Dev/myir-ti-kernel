@@ -85,6 +85,16 @@ config TI_CPTS
 	  the CPSW Ethernet Switch. The unit can time stamp PTP UDP/IPv4
 	  and Layer 2 packets, and the driver offers a PTP Hardware Clock.
 
+config TI_KEYSTONE_NETCP_CPTS
+	bool "TI Keystone Common Platform Time Sync (CPTS) Support"
+	depends on TI_KEYSTONE_NETCP_ETHSS
+	select PTP_1588_CLOCK
+	---help---
+	  This driver supports the Common Platform Time Sync unit of
+	  the CPSW Ethernet Switch in TI's Keystone devices. The unit
+	  can time stamp PTP UDP/IPv4 and Layer 2 packets, and the driver
+	  offers a PTP Hardware Clock.
+
 config TI_KEYSTONE_NETCP
 	tristate "TI Keystone NETCP Core Support"
 	select TI_CPSW_ALE
