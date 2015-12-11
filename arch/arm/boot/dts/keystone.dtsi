@@ -342,5 +342,12 @@
 					<GIC_SPI 29 IRQ_TYPE_EDGE_RISING>;
 			};
 		};
+
+		srss: srss@2330000 {
+			compatible = "ti,keystone-srss";
+			reg = <0x02330000 0x800>;
+			clocks = <&clksr>;
+			clock-names = "srssclock";
+		};
 	};
 };

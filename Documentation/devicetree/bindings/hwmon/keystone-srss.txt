@@ -1,0 +1,26 @@
+Texas Instruments Smart Reflex Sub-System (SRSS) module for Keystone devices
+
+Required properties:
+- compatible : Should be "ti,keystone-srss"
+- reg : Should contain SRSS registers location and length
+
+Optional properties:
+- clocks : the clock feeding the smart reflex sub-system.
+	   Needed if platform uses clocks.
+	   See clock-bindings.txt
+- clocks-names : clock name strings correspond to the clocks
+		 defined above. These strings are used inside
+		 module source code to identify the respective
+                 clocks
+
+Documentation:
+http://www.ti.com/lit/ds/symlink/tci6636k2h.pdf
+
+Examples:
+
+srss: srss@2330000 {
+        compatible = "ti,keystone-srss";
+        reg = <0x02330000 0x800>;
+        clocks = <&clksr>;
+        clock-names = "srssclock";
+};

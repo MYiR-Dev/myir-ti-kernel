@@ -244,5 +244,11 @@
 			interrupt-names = "vring", "exception";
 			kick-gpio = <&dspgpio7 27 0>;
 		};
+
+		debugss: debugss {
+			compatible = "ti,keystone-debugss";
+			clocks = <&mainpllclk>, <&armpllclk>, <&clkdebugsstrc>, <&gemtraceclk>, <&clktetbtrc>;
+			clock-names = "mainpllclock", "armpllclock", "debugssclock", "gemtraceclock", "tetbclock";
+		};
 	};
 };
