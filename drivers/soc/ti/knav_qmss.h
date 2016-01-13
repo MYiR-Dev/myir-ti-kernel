@@ -19,6 +19,8 @@
 #ifndef __KNAV_QMSS_H__
 #define __KNAV_QMSS_H__
 
+#include <linux/regmap.h>
+
 #define THRESH_GTE	BIT(7)
 #define THRESH_LT	0
 
@@ -133,6 +135,7 @@ struct knav_pdsp_info {
 		struct knav_reg_acc_command __iomem	*acc_command;
 		u32 __iomem				*qos_command;
 	};
+	struct regmap					*intd_regmap;
 	void __iomem					*intd;
 	u32 __iomem					*iram;
 	u32						id;
@@ -373,6 +376,32 @@ struct knav_range_info {
 
 #define for_each_qmgr(kdev, qmgr)				\
 	list_for_each_entry(qmgr, &kdev->qmgrs, list)
+
+static inline int
+write_intd(struct knav_pdsp_info *pdsp, unsigned int reg, unsigned int val)
+{
+	int ret = 0;
+
+	if (pdsp->intd)
+		writel_relaxed(val, pdsp->intd + reg);
+	else
+		ret = regmap_write(pdsp->intd_regmap, reg, val);
+
+	return ret;
+}
+
+static inline int
+read_intd(struct knav_pdsp_info *pdsp, unsigned int reg, unsigned int *val)
+{
+	int ret = 0;
+
+	if (pdsp->intd)
+		*val = readl_relaxed(pdsp->intd + reg);
+	else
+		ret = regmap_read(pdsp->intd_regmap, reg, val);
+
+	return ret;
+}
 
 static inline struct knav_pdsp_info *
 knav_find_pdsp(struct knav_device *kdev, unsigned pdsp_id)

@@ -16,26 +16,18 @@
  * General Public License for more details.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/clk.h>
 #include <linux/io.h>
+#include <linux/mfd/syscon.h>
 #include <linux/interrupt.h>
-#include <linux/bitops.h>
 #include <linux/slab.h>
-#include <linux/spinlock.h>
-#include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
-#include <linux/of.h>
 #include <linux/of_irq.h>
 #include <linux/of_device.h>
 #include <linux/of_address.h>
 #include <linux/pm_runtime.h>
 #include <linux/firmware.h>
 #include <linux/debugfs.h>
-#include <linux/seq_file.h>
-#include <linux/string.h>
 #include <linux/soc/ti/knav_qmss.h>
 
 #include "knav_qmss.h"
@@ -1479,12 +1471,68 @@ static int knav_queue_init_qmgrs(struct knav_device *kdev,
 	return 0;
 }
 
+static int knav_of_parse_pdsp_mem_map(struct knav_device *kdev,
+				      struct knav_pdsp_info *pdsp,
+				      struct device_node *pdsp_np)
+{
+	int num_regs, cmd_idx;
+
+	if (!of_find_property(pdsp_np, "reg", &num_regs))
+		return -EINVAL;
+
+	num_regs = num_regs / (2 * sizeof(u32));
+
+	if (num_regs < 4) {
+		pdsp->intd_regmap =
+			syscon_regmap_lookup_by_phandle(pdsp_np, "syscon-intd");
+
+		pdsp->intd = NULL;
+		cmd_idx = KNAV_QUEUE_PDSP_CMD_REG_INDEX - 1;
+	} else {
+		/* for backward compatible */
+		pdsp->intd =
+			knav_queue_map_reg(kdev, pdsp_np,
+					   KNAV_QUEUE_PDSP_INTD_REG_INDEX);
+
+		pdsp->intd_regmap = NULL;
+		cmd_idx = KNAV_QUEUE_PDSP_CMD_REG_INDEX;
+	}
+
+	pdsp->iram =
+		knav_queue_map_reg(kdev, pdsp_np,
+				   KNAV_QUEUE_PDSP_IRAM_REG_INDEX);
+	pdsp->regs =
+		knav_queue_map_reg(kdev, pdsp_np,
+				   KNAV_QUEUE_PDSP_REGS_REG_INDEX);
+	pdsp->command =
+		knav_queue_map_reg(kdev, pdsp_np, cmd_idx);
+
+	if (IS_ERR(pdsp->command) || IS_ERR(pdsp->iram) ||
+	    IS_ERR(pdsp->regs) || IS_ERR(pdsp->intd) ||
+	    IS_ERR(pdsp->intd_regmap)) {
+		dev_err(kdev->dev, "failed to map pdsp %s regs\n",
+			pdsp->name);
+		if (!IS_ERR_OR_NULL(pdsp->command))
+			devm_iounmap(kdev->dev, pdsp->command);
+		if (!IS_ERR_OR_NULL(pdsp->iram))
+			devm_iounmap(kdev->dev, pdsp->iram);
+		if (!IS_ERR_OR_NULL(pdsp->regs))
+			devm_iounmap(kdev->dev, pdsp->regs);
+		if (!IS_ERR_OR_NULL(pdsp->intd))
+			devm_iounmap(kdev->dev, pdsp->intd);
+		return -ENODEV;
+	}
+
+	return 0;
+}
+
 static int knav_queue_init_pdsps(struct knav_device *kdev,
 					struct device_node *pdsps)
 {
 	struct device *dev = kdev->dev;
 	struct knav_pdsp_info *pdsp;
 	struct device_node *child;
+	int ret;
 
 	for_each_child_of_node(pdsps, child) {
 		pdsp = devm_kzalloc(dev, sizeof(*pdsp), GFP_KERNEL);
@@ -1493,39 +1541,24 @@ static int knav_queue_init_pdsps(struct knav_device *kdev,
 			return -ENOMEM;
 		}
 		pdsp->name = knav_queue_find_name(child);
-		pdsp->iram =
-			knav_queue_map_reg(kdev, child,
-					   KNAV_QUEUE_PDSP_IRAM_REG_INDEX);
-		pdsp->regs =
-			knav_queue_map_reg(kdev, child,
-					   KNAV_QUEUE_PDSP_REGS_REG_INDEX);
-		pdsp->intd =
-			knav_queue_map_reg(kdev, child,
-					   KNAV_QUEUE_PDSP_INTD_REG_INDEX);
-		pdsp->command =
-			knav_queue_map_reg(kdev, child,
-					   KNAV_QUEUE_PDSP_CMD_REG_INDEX);
 
-		if (IS_ERR(pdsp->command) || IS_ERR(pdsp->iram) ||
-		    IS_ERR(pdsp->regs) || IS_ERR(pdsp->intd)) {
-			dev_err(dev, "failed to map pdsp %s regs\n",
-				pdsp->name);
-			if (!IS_ERR(pdsp->command))
-				devm_iounmap(dev, pdsp->command);
-			if (!IS_ERR(pdsp->iram))
-				devm_iounmap(dev, pdsp->iram);
-			if (!IS_ERR(pdsp->regs))
-				devm_iounmap(dev, pdsp->regs);
-			if (!IS_ERR(pdsp->intd))
-				devm_iounmap(dev, pdsp->intd);
+		ret = knav_of_parse_pdsp_mem_map(kdev, pdsp, child);
+		if (ret) {
 			devm_kfree(dev, pdsp);
 			continue;
 		}
+
 		of_property_read_u32(child, "id", &pdsp->id);
 		list_add_tail(&pdsp->list, &kdev->pdsps);
-		dev_dbg(dev, "added pdsp %s: command %p, iram %p, regs %p, intd %p\n",
-			pdsp->name, pdsp->command, pdsp->iram, pdsp->regs,
-			pdsp->intd);
+		if (pdsp->intd) {
+			dev_dbg(dev, "added pdsp %s: command %p, iram %p, regs %p, intd %p\n",
+				pdsp->name, pdsp->command, pdsp->iram,
+				pdsp->regs, pdsp->intd);
+		} else {
+			dev_dbg(dev, "added pdsp %s: command %p, iram %p, regs %p, intd_regmap %p\n",
+				pdsp->name, pdsp->command, pdsp->iram,
+				pdsp->regs, pdsp->intd_regmap);
+		}
 	}
 	return 0;
 }

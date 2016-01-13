@@ -103,15 +103,21 @@ Optional properties:
 - pdsps		: child node describing the PDSP configuration.
   -- firmware		: firmware to be loaded on the PDSP.
   -- id			: the qmss pdsp that will run the firmware.
+  -- syscon-intd	: Handle to the syscon regmap of the QMSS interrupt
+			  distributor register region.
   -- reg		: Address and size of the register set for the PDSP.
 			  Register regions should be specified in the following
 			  order
 			  - PDSP internal RAM region.
 			  - PDSP control/status region registers.
-			  - QMSS interrupt distributor registers.
 			  - PDSP command interface region.
 
 Example:
+
+pdsp_intd: intd@2a0c000 {
+	compatible	= "syscon";
+	reg		= <0x2a0c000 0x3c8>;
+};
 
 qmss: qmss@2a40000 {
 	compatible = "ti,keystone-qmss";
@@ -228,9 +234,9 @@ qmss: qmss@2a40000 {
 		#size-cells = <1>;
 		ranges;
 		pdsp0@0x2a10000 {
+			syscon-intd = <&pdsp_intd>;
 			reg = <0x2a10000 0x1000>,
 			      <0x2a0f000 0x100>,
-			      <0x2a0c000 0x3c8>,
 			      <0x2a20000 0x4000>;
 			id = <0>;
 		};
