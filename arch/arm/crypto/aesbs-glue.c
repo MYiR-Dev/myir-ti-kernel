@@ -9,12 +9,11 @@
  */
 
 #include <asm/neon.h>
+#include <asm/aes_glue.h>
 #include <crypto/aes.h>
 #include <crypto/ablk_helper.h>
 #include <crypto/algapi.h>
 #include <linux/module.h>
-
-#include "aes_glue.h"
 
 #define BIT_SLICED_KEY_MAXSIZE	(128 * (AES_MAXNR - 1) + 2 * AES_BLOCK_SIZE)
 

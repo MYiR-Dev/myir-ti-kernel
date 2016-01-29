@@ -5,8 +5,7 @@
 #include <linux/module.h>
 #include <linux/crypto.h>
 #include <crypto/aes.h>
-
-#include "aes_glue.h"
+#include <asm/aes_glue.h>
 
 EXPORT_SYMBOL(AES_encrypt);
 EXPORT_SYMBOL(AES_decrypt);
