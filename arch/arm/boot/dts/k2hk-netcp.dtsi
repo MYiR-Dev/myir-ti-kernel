@@ -378,6 +378,31 @@ netcp: netcp@2000000 {
 			netcp-pa = <&pa1>;
 		};
 	};
+
+};
+
+crypto@20c0000 {
+	compatible = "ti,netcp-sa-crypto";
+	label = "crypto-gbe";
+	reg = <0x20c0000 0x40000>;
+	clocks = <&clksa>;
+
+	ti,navigator-dmas = <&dma_gbe 26>, <&dma_gbe 6>;
+	ti,navigator-dma-names = "crypto-rx", "crypto-tx";
+
+	ti,rx-channel = "crypto-rx";
+	ti,rx-queue-depth = <256 64 0 0>;
+	ti,rx-buffer-size = <1500 4096 0 0>;
+	ti,rx-compl-queue = <8712>;
+	ti,rx-pool	= <512 12>;
+
+	ti,tx-channel = "crypto-tx";
+	ti,tx-queue-depth = <256>;
+	ti,tx-completion-queue = <8713>;
+	ti,tx-pool = <512 12>;
+	ti,tx-submit-queue = <646>;
+
+	ti,sc-id = <0x7000 0x71ff>;
 };
 
 xgbe_subsys: subsys@2f00000 {
