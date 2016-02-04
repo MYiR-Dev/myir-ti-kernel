@@ -23,6 +23,7 @@
 
 #include <linux/device.h>
 #include <linux/netdevice.h>
+#include <linux/if_vlan.h>
 #include <linux/io.h>
 #include <linux/kobject.h>
 #include <linux/list.h>
@@ -139,7 +140,11 @@ struct gbe_priv {
 	spinlock_t			hw_stats_lock;
 	struct phy			*serdes_phy[MAX_NUM_SERDES];
 
+	struct kobject			kobj;
+	struct kobject			tx_pri_kobj;
+	struct kobject			pvlan_kobj;
 	struct kobject			port_ts_kobj[MAX_SLAVES];
+	struct kobject			stats_kobj;
 	u32				cpts_rftclk_sel;
 	u32				cpts_clock_mult;
 	u32				cpts_clock_shift;
@@ -148,9 +153,91 @@ struct gbe_priv {
 	struct cpts			cpts;
 };
 
-int gbe_create_cpts_sysfs(struct gbe_priv *gbe_dev);
+struct gbe_slave {
+	void __iomem			*port_regs;
+	void __iomem			*emac_regs;
+	struct gbe_port_regs_ofs	port_regs_ofs;
+	struct gbe_emac_regs_ofs	emac_regs_ofs;
+	int				slave_num; /* 0 based logical number */
+	int				port_num;  /* actual port number */
+	atomic_t			link_state;
+	bool				open;
+	struct phy_device		*phy;
+	u32				link_interface;
+	u32				mac_control;
+	u8				phy_port_t;
+	struct device_node		*phy_node;
+	struct ts_ctl			ts_ctl;
+	struct list_head		slave_list;
+};
+
+struct gbe_intf {
+	struct net_device	*ndev;
+	struct device		*dev;
+	struct gbe_priv		*gbe_dev;
+	struct netcp_tx_pipe	tx_pipe;
+	struct gbe_slave	*slave;
+	struct list_head	gbe_intf_list;
+	unsigned long		active_vlans[BITS_TO_LONGS(VLAN_N_VID)];
+};
+
+int gbe_create_sysfs_entries(struct gbe_priv *gbe_dev);
+void gbe_reset_mod_stats(struct gbe_priv *gbe_dev, int stats_mod);
+void gbe_reset_mod_stats_ver14(struct gbe_priv *gbe_dev, int stats_mod);
 
 #define for_each_intf(i, priv) \
 	list_for_each_entry((i), &(priv)->gbe_intf_head, gbe_intf_list)
+
+#define GBE_REG_ADDR(p, rb, rn) (p->rb + p->rb##_ofs.rn)
+#define GBE_MAJOR_VERSION(reg)		(reg >> 8 & 0x7)
+#define GBE_MINOR_VERSION(reg)		(reg & 0xff)
+#define GBE_RTL_VERSION(reg)		((reg >> 11) & 0x1f)
+#define GBE_IDENT(reg)			((reg >> 16) & 0xffff)
+#define GBE_SS_ID_NU			0x4ee6
+#define GBE_SS_ID_2U			0x4ee8
+
+#define IS_SS_ID_MU(d) \
+	((GBE_IDENT((d)->ss_version) == GBE_SS_ID_NU) || \
+	 (GBE_IDENT((d)->ss_version) == GBE_SS_ID_2U))
+
+#define IS_SS_ID_NU(d) \
+	(GBE_IDENT((d)->ss_version) == GBE_SS_ID_NU)
+#define GBE_STATSA_MODULE			0
+#define GBE_STATSB_MODULE			1
+#define GBE_STATSC_MODULE			2
+#define GBE_STATSD_MODULE			3
+
+#define GBENU_STATS0_MODULE			0
+#define GBENU_STATS1_MODULE			1
+#define GBENU_STATS2_MODULE			2
+#define GBENU_STATS3_MODULE			3
+#define GBENU_STATS4_MODULE			4
+#define GBENU_STATS5_MODULE			5
+#define GBENU_STATS6_MODULE			6
+#define GBENU_STATS7_MODULE			7
+#define GBENU_STATS8_MODULE			8
+
+#define XGBE_STATS0_MODULE			0
+#define XGBE_STATS1_MODULE			1
+#define XGBE_STATS2_MODULE			2
+
+#define XGBE_SS_VERSION_10		0x4ee42100
+#define GBE_SS_VERSION_14		0x4ed21104
+
+#define TS_107					BIT(16)
+#define TS_129					BIT(17)
+#define TS_130					BIT(18)
+#define TS_131					BIT(19)
+#define TS_132					BIT(20)
+#define TS_319					BIT(21)
+#define TS_320					BIT(22)
+#define TS_TTL_NONZERO				BIT(23)
+#define TS_CTL_MADDR_ALL	\
+	(TS_107 | TS_129 | TS_130 | TS_131 | TS_132)
+#define TS_UNI_EN				BIT(24)
+#define TS_UNI_EN_SHIFT				24
+#define TS_CTL_MADDR_SHIFT			16
+#define TS_CTL_DST_PORT				TS_319
+#define TS_CTL_DST_PORT_SHIFT			21
 
 #endif /* __NETCP_ETHSS_H */

@@ -35,14 +35,8 @@
 #define NETCP_DRIVER_NAME		"TI KeyStone Ethernet Driver"
 #define NETCP_DRIVER_VERSION		"v1.0"
 
-#define GBE_IDENT(reg)			((reg >> 16) & 0xffff)
-#define GBE_MAJOR_VERSION(reg)		(reg >> 8 & 0x7)
-#define GBE_MINOR_VERSION(reg)		(reg & 0xff)
-#define GBE_RTL_VERSION(reg)		((reg >> 11) & 0x1f)
-
 /* 1G Ethernet SS defines */
 #define GBE_MODULE_NAME			"netcp-gbe"
-#define GBE_SS_VERSION_14		0x4ed21104
 
 /* for devicetree backward compatible only */
 #define GBE_SS_REG_INDEX		0
@@ -71,15 +65,6 @@
 
 /* 1G Ethernet NU SS defines */
 #define GBENU_MODULE_NAME		"netcp-gbenu"
-#define GBE_SS_ID_NU			0x4ee6
-#define GBE_SS_ID_2U			0x4ee8
-
-#define IS_SS_ID_MU(d) \
-	((GBE_IDENT((d)->ss_version) == GBE_SS_ID_NU) || \
-	 (GBE_IDENT((d)->ss_version) == GBE_SS_ID_2U))
-
-#define IS_SS_ID_NU(d) \
-	(GBE_IDENT((d)->ss_version) == GBE_SS_ID_NU)
 
 #define GBENU_SGMII_REG_INDEX		0
 #define GBENU_SM_REG_INDEX		1
@@ -97,7 +82,6 @@
 
 /* 10G Ethernet SS defines */
 #define XGBE_MODULE_NAME		"netcp-xgbe"
-#define XGBE_SS_VERSION_10		0x4ee42100
 
 #define XGBE_SGMII_REG_INDEX		0
 #define XGBE_SM_REG_INDEX		1
@@ -144,25 +128,6 @@
 		(MACSL_XGIG_MODE | MACSL_XGMII_ENABLE |		\
 		 MACSL_ENABLE_EXT_CTL |	MACSL_RX_ENABLE_CSF)
 
-#define GBE_STATSA_MODULE			0
-#define GBE_STATSB_MODULE			1
-#define GBE_STATSC_MODULE			2
-#define GBE_STATSD_MODULE			3
-
-#define GBENU_STATS0_MODULE			0
-#define GBENU_STATS1_MODULE			1
-#define GBENU_STATS2_MODULE			2
-#define GBENU_STATS3_MODULE			3
-#define GBENU_STATS4_MODULE			4
-#define GBENU_STATS5_MODULE			5
-#define GBENU_STATS6_MODULE			6
-#define GBENU_STATS7_MODULE			7
-#define GBENU_STATS8_MODULE			8
-
-#define XGBE_STATS0_MODULE			0
-#define XGBE_STATS1_MODULE			1
-#define XGBE_STATS2_MODULE			2
-
 /* s: 0-based slave_port */
 #define SGMII_BASE(d, s) \
 	(((s) < 2) ? (d)->sgmii_port_regs : (d)->sgmii_port34_regs)
@@ -183,7 +148,6 @@
 		offsetof(struct gbenu##_##rb, rn)
 #define XGBE_SET_REG_OFS(p, rb, rn) p->rb##_ofs.rn = \
 		offsetof(struct xgbe##_##rb, rn)
-#define GBE_REG_ADDR(p, rb, rn) (p->rb + p->rb##_ofs.rn)
 #define GBE_REG_OFS(p, rb, rn) ((p)->rb##_ofs.rn)
 
 #define HOST_TX_PRI_MAP_DEFAULT			0x00000000
@@ -220,17 +184,6 @@
 /* Px_TS_CTL_LTYPE2 register fields */
 #define TS_LTYPE2_SHIFT				0
 #define TS_LTYPE2_MASK				0xffff
-#define TS_107					BIT(16)
-#define TS_129					BIT(17)
-#define TS_130					BIT(18)
-#define TS_131					BIT(19)
-#define TS_132					BIT(20)
-#define TS_319					BIT(21)
-#define TS_320					BIT(22)
-#define TS_TTL_NONZERO				BIT(23)
-#define TS_UNI_EN				BIT(24)
-#define TS_UNI_EN_SHIFT				24
-
 /* Px_TS_CTL2 */
 #define TS_MCAST_TYPE_EN_SHIFT			0
 #define TS_MCAST_TYPE_EN_MASK			0xff
@@ -242,14 +195,6 @@
 
 #define TS_RX_ANX_ALL_EN	 \
 	(TS_RX_ANX_D_EN	| TS_RX_ANX_E_EN | TS_RX_ANX_F_EN)
-
-#define TS_CTL_DST_PORT				TS_319
-#define TS_CTL_DST_PORT_SHIFT			21
-
-#define TS_CTL_MADDR_ALL	\
-	(TS_107 | TS_129 | TS_130 | TS_131 | TS_132)
-
-#define TS_CTL_MADDR_SHIFT			16
 
 /* The PTP event messages - Sync, Delay_Req, Pdelay_Req, and Pdelay_Resp. */
 #define EVENT_MSG_BITS (BIT(0) | BIT(1) | BIT(2) | BIT(3))
@@ -660,34 +605,6 @@ struct gbe_hw_stats {
 };
 
 #define GBE_HW_STATS_REG_MAP_SZ			0x100
-
-struct gbe_slave {
-	void __iomem			*port_regs;
-	void __iomem			*emac_regs;
-	struct gbe_port_regs_ofs	port_regs_ofs;
-	struct gbe_emac_regs_ofs	emac_regs_ofs;
-	int				slave_num; /* 0 based logical number */
-	int				port_num;  /* actual port number */
-	atomic_t			link_state;
-	bool				open;
-	struct phy_device		*phy;
-	u32				link_interface;
-	u32				mac_control;
-	u8				phy_port_t;
-	struct device_node		*phy_node;
-	struct ts_ctl			ts_ctl;
-	struct list_head		slave_list;
-};
-
-struct gbe_intf {
-	struct net_device	*ndev;
-	struct device		*dev;
-	struct gbe_priv		*gbe_dev;
-	struct netcp_tx_pipe	tx_pipe;
-	struct gbe_slave	*slave;
-	struct list_head	gbe_intf_list;
-	unsigned long		active_vlans[BITS_TO_LONGS(VLAN_N_VID)];
-};
 
 static struct netcp_module gbe_module;
 static struct netcp_module xgbe_module;
@@ -1731,7 +1648,7 @@ static int keystone_get_sset_count(struct net_device *ndev, int stringset)
 	}
 }
 
-static void gbe_reset_mod_stats(struct gbe_priv *gbe_dev, int stats_mod)
+void gbe_reset_mod_stats(struct gbe_priv *gbe_dev, int stats_mod)
 {
 	void __iomem *base = gbe_dev->hw_stats_regs[stats_mod];
 	u32  __iomem *p_stats_entry;
@@ -1800,7 +1717,7 @@ static inline void gbe_stats_mod_visible_ver14(struct gbe_priv *gbe_dev,
 	writel(val, GBE_REG_ADDR(gbe_dev, switch_regs, stat_port_en));
 }
 
-static void gbe_reset_mod_stats_ver14(struct gbe_priv *gbe_dev, int stats_mod)
+void gbe_reset_mod_stats_ver14(struct gbe_priv *gbe_dev, int stats_mod)
 {
 	gbe_stats_mod_visible_ver14(gbe_dev, stats_mod);
 	gbe_reset_mod_stats(gbe_dev, stats_mod);
@@ -3750,7 +3667,7 @@ static int gbe_probe(struct netcp_device *netcp_device, struct device *dev,
 	}
 	spin_unlock_bh(&gbe_dev->hw_stats_lock);
 
-	ret = gbe_create_cpts_sysfs(gbe_dev);
+	ret = gbe_create_sysfs_entries(gbe_dev);
 	if (ret)
 		goto free_sec_ports;
 
