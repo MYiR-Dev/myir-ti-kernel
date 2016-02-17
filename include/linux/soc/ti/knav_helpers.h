@@ -45,14 +45,6 @@ static inline void knav_get_org_pkt_info(u32 *buff, u32 *buff_len,
 	*buff_len = desc->orig_len;
 }
 
-static inline void knav_dma_get_words(u32 *words, int num_words, u32 *desc)
-{
-	int i;
-
-	for (i = 0; i < num_words; i++)
-		words[i] = desc[i];
-}
-
 static inline void knav_dma_set_pkt_info(u32 buff, u32 buff_len, u32 ndesc,
 					 struct knav_dma_desc *desc)
 {
@@ -86,9 +78,20 @@ static inline void knav_dma_set_words(u32 *words, int num_words, u32 *desc)
 {
 	int i;
 
-	for (i = 0; i < num_words; i++)
-		desc[i] = words[i];
+	if (words >= desc) {
+		for (i = 0; i < num_words; i++)
+			desc[i] = words[i];
+	} else {
+		while (num_words--)
+			desc[num_words] = words[num_words];
+	}
 }
+
+static inline void knav_dma_get_words(u32 *words, int num_words, u32 *desc)
+{
+	knav_dma_set_words(desc, num_words, words);
+}
+
 #define knav_queue_get_id(q)	knav_queue_device_control(q, \
 				KNAV_QUEUE_GET_ID, (unsigned long)NULL)
 
