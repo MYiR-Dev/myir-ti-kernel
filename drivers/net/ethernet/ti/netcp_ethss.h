@@ -109,6 +109,7 @@ struct gbe_priv {
 	u32				rx_packet_max;
 	u32				ss_version;
 	u32				stats_en_mask;
+	bool				disable_hw_tstamp;
 
 	struct regmap			*ss_regmap;
 	struct regmap			*pcsr_regmap;

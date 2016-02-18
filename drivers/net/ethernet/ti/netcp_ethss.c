@@ -2475,6 +2475,9 @@ static int gbe_hwtstamp_get(struct gbe_intf *gbe_intf, struct ifreq *ifr)
 	struct cpts *cpts = &gbe_dev->cpts;
 	struct hwtstamp_config cfg;
 
+	if (gbe_dev->disable_hw_tstamp)
+		return -EOPNOTSUPP;
+
 	cfg.flags = 0;
 	cfg.tx_type = cpts->tx_enable ? HWTSTAMP_TX_ON : HWTSTAMP_TX_OFF;
 	cfg.rx_filter = (cpts->rx_enable ?
@@ -2517,6 +2520,9 @@ static int gbe_hwtstamp_set(struct gbe_intf *gbe_intf, struct ifreq *ifr)
 	struct gbe_priv *gbe_dev = gbe_intf->gbe_dev;
 	struct cpts *cpts = &gbe_dev->cpts;
 	struct hwtstamp_config cfg;
+
+	if (gbe_dev->disable_hw_tstamp)
+		return -EOPNOTSUPP;
 
 	if (!cpts->reg)
 		return -EOPNOTSUPP;
@@ -2759,8 +2765,12 @@ static int gbe_open(void *intf_priv, struct net_device *ndev)
 	if (ret)
 		goto fail;
 
-	netcp_register_txhook(netcp, GBE_TXHOOK_ORDER, gbe_txhook, gbe_intf);
-	netcp_register_rxhook(netcp, GBE_RXHOOK_ORDER, gbe_rxhook, gbe_intf);
+	if (!gbe_dev->disable_hw_tstamp) {
+		netcp_register_txhook(netcp, GBE_TXHOOK_ORDER, gbe_txhook,
+				      gbe_intf);
+		netcp_register_rxhook(netcp, GBE_RXHOOK_ORDER, gbe_rxhook,
+				      gbe_intf);
+	}
 
 	slave->open = true;
 	netcp_ethss_update_link_state(gbe_dev, slave, ndev);
@@ -3528,6 +3538,11 @@ static int gbe_probe(struct netcp_device *netcp_device, struct device *dev,
 	} else {
 		gbe_dev->enable_ale = false;
 		dev_dbg(dev, "ALE bypass enabled*\n");
+	}
+
+	if (of_property_read_bool(node, "disable-hw-timestamp")) {
+		gbe_dev->disable_hw_tstamp = true;
+		dev_warn(dev, "No CPTS timestamping\n");
 	}
 
 	ret = of_property_read_u32(node, "tx-queue",
