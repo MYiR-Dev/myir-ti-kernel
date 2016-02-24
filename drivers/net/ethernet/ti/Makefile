@@ -11,7 +11,11 @@ obj-$(CONFIG_TI_DAVINCI_EMAC) += davinci_emac.o
 obj-$(CONFIG_TI_DAVINCI_MDIO) += davinci_mdio.o
 obj-$(CONFIG_TI_DAVINCI_CPDMA) += davinci_cpdma.o
 obj-$(CONFIG_TI_CPSW_PHY_SEL) += cpsw-phy-sel.o
+ifdef CONFIG_ARCH_KEYSTONE
+obj-$(CONFIG_TI_CPSW_ALE) += netcp_ale.o
+else
 obj-$(CONFIG_TI_CPSW_ALE) += cpsw_ale.o
+endif
 obj-$(CONFIG_TI_CPSW) += ti_cpsw.o
 ti_cpsw-y := cpsw.o cpts.o
 

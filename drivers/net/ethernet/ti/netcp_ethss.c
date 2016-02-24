@@ -30,7 +30,7 @@
 #include <linux/ethtool.h>
 #include <linux/phy/phy.h>
 
-#include "cpsw_ale.h"
+#include "netcp_ale.h"
 #include "netcp.h"
 #include "netcp_cpts.h"
 
