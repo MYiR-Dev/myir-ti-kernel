@@ -154,8 +154,11 @@ Required properties:
 - rx-queue:	the navigator queue number associated with rx dma channel.
 - rx-pool:	specifies the number of descriptors to be used & the region-id
 		for creating the rx descriptor pool.
-- tx-pool:	specifies the number of descriptors to be used & the region-id
-		for creating the tx descriptor pool.
+- tx-pools:	a multiple of quadruples, each quadruple configures one tx-pool
+		which corresponds to one tx-pipe and hence one subqueue.
+		Entries in a quadruple specifies the number of descriptors to
+		be used, the region-id for creating the tx descriptor pool,
+		the tx-threshold and rx-threshold.
 - rx-queue-depth:	number of descriptors in each of the free descriptor
 			queue (FDQ) for the pktdma Rx flow. There can be at
 			present a maximum of 4 queues per Rx flow.
@@ -391,7 +394,16 @@ netcpx: netcpx@2f00000 {
 		interface-0 {
 			rx-channel = "xnetrx0";
 			rx-pool = <2048 12>; /* num_desc region-id */
-			tx-pool = <1024 12>; /* num_desc region-id */
+			/* 7 tx pools, hence 7 subqueues
+			 *   <#desc rgn-id tx-thresh rx-thresh>
+			 */
+			tx-pools = <1024 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17>;
 			rx-queue-depth = <1024 1024 0 0>;
 			rx-buffer-size = <1536 4096 0 0>;
 			rx-queue = <532>;
