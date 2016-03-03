@@ -8,6 +8,16 @@
  * published by the Free Software Foundation.
  */
 
+qostree0: qos-tree-0 {
+	output-queue = <910>;		/* allowed only on root node */
+};
+
+qostree1: qos-tree-1 {
+	output-queue = <910>;		/* allowed only on root node */
+};
+
+/include/ "keystone-qostree.dtsi"
+
 pdsp_intd: intd@2a0c000 {
 	compatible	= "syscon";
 	reg		= <0x2a0c000 0x3c8>;
@@ -78,6 +88,48 @@ qmss: qmss@2a40000 {
 				qalloc-by-id;
 			};
 		};
+		qos {
+			qosinputs0: qos-inputs-0 {
+				qrange = <8000 192>;
+				pdsp-id			= <3>;
+				ticks-per-sec		= <10000>;
+				/* inputs_per_port
+				 * drop cfg int_num
+				 * drop cfg qos_ticks
+				 * drop cfg drop_ticks
+				 * drop cfg seed_0,1,2
+				 */
+				qos-cfg			= <4 50 1 1 0xf00 0 0>;
+				/* 4 types of shadows
+				 *     each with <start-idx cnt size>
+				 */
+				sched-port-configs	= <0 20 0x1c8>;
+				drop-out-profiles	= <0 36 0xc>;
+				drop-cfg-profiles	= <0 8 0x14>;
+				drop-queue-configs	= <0 80 0x4>;
+
+				drop-policies           = <&droppolicies>;
+				qos-tree                = <&qostree0>;
+				statistics-profiles	= <0 48>;
+				qalloc-by-id;
+			};
+			qosinputs1: qos-inputs-1 {
+				qrange = <6400 192>;
+				pdsp-id			= <7>;
+				ticks-per-sec		= <10000>;
+				qos-cfg			= <4 50 1 1 0xf00 0 0>;
+
+				sched-port-configs	= <0 20 0x1c8>;
+				drop-out-profiles	= <0 36 0xc>;
+				drop-cfg-profiles	= <0 8 0x14>;
+				drop-queue-configs	= <0 80 0x4>;
+
+				drop-policies           = <&droppolicies>;
+				qos-tree                = <&qostree1>;
+				statistics-profiles	= <0 48>;
+				qalloc-by-id;
+			};
+		};
 		accumulator {
 			acc-low-0 {
 				qrange = <480 32>;
@@ -94,7 +146,7 @@ qmss: qmss@2a40000 {
 		ranges;
 		region-12 {
 			id = <12>;
-			region-spec = <8192 128>;	/* num_desc desc_size */
+			region-spec = <10240 128>;	/* num_desc desc_size */
 			link-index = <0x4000>;
 		};
 	};
@@ -109,6 +161,24 @@ qmss: qmss@2a40000 {
 			       0x2a0f000 0x100     /*reg*/
 			       0x2a20000 0x4000>;  /*cmd*/
 			id = <0>;
+		};
+		pdsp3@0x2a13000 {
+			firmware_type = "qos";
+			syscon-intd = <&pdsp_intd>;
+			reg = <0x2a13000 0x1000>,
+			      <0x2a0f300 0x100>,
+			      <0x2a2c000 0x4000>;
+			reg-names = "iram", "regs", "command";
+			id = <3>;
+		};
+		pdsp7@0x2a17000 {
+			firmware_type = "qos";
+			syscon-intd = <&pdsp_intd>;
+			reg = <0x2a17000 0x1000>,
+			      <0x2a0f700 0x100>,
+			      <0x2a3c000 0x4000>;
+			reg-names = "iram", "regs", "command";
+			id = <7>;
 		};
 	};
 
@@ -376,34 +446,67 @@ netcp: netcp@26000000 {
 				};
 			};
 		};
+
+		qos@0 {
+			label = "netcp-qos";
+			compatible = "ti,netcp-qos";
+			tx-channel = "pa-cl6";
+
+			interfaces {
+				qos0: interface-0 {
+					tx-queues = <910 8072 8073 8074
+						     8075 8076 8077>;
+				};
+				qos1: interface-1 {
+					tx-queues = <910 6472 6473 6474
+						     6475 6476 6477>;
+				};
+			};
+		};
 	};
 
 	netcp-interfaces {
 		interface-0 {
 			rx-channel = "netrx0";
 			rx-pool = <1024 12>;
-			tx-pool = <1024 12>;
 			rx-queue-depth = <128 128 0 0>;
 			rx-buffer-size = <1518 4096 0 0>;
 			rx-queue = <528>;
+			/* 7 pools, hence 7 subqueues
+			 *   <#desc rgn-id tx-thresh rx-thresh>
+			 */
+			tx-pools = <1024 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17>;
 			tx-completion-queue = <530>;
 			efuse-mac = <1>;
 			netcp-gbe = <&gbe0>;
 			netcp-pa2 = <&pa0>;
-
+			netcp-qos = <&qos0>;
 		};
 		interface-1 {
 			rx-channel = "netrx1";
 			rx-pool = <1024 12>;
-			tx-pool = <1024 12>;
 			rx-queue-depth = <128 128 0 0>;
 			rx-buffer-size = <1518 4096 0 0>;
 			rx-queue = <529>;
+			tx-pools = <1024 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17
+				    64 12 17 17>;
 			tx-completion-queue = <531>;
 			efuse-mac = <0>;
 			local-mac-address = [02 18 31 7e 3e 7f];
 			netcp-gbe = <&gbe1>;
 			netcp-pa2 = <&pa1>;
+			netcp-qos = <&qos1>;
 		};
 	};
 };
