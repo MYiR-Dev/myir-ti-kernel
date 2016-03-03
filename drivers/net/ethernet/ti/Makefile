@@ -32,3 +32,5 @@ obj-$(CONFIG_TI_KEYSTONE_NETCP_PA2) += keystone_netcp_pa2.o
 keystone_netcp_pa2-y := netcp_pa2.o
 
 obj-$(CONFIG_TI_PRUETH) += ti-prueth.o
+obj-$(CONFIG_TI_KEYSTONE_NETCP_QOS) += keystone_netcp_qos.o
+keystone_netcp_qos-y := netcp_qos.o

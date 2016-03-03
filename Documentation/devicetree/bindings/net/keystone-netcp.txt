@@ -568,3 +568,47 @@ PA device is provided below.
 			};
 		};
 	};
+
+NETCP Quality of Service (QoS) sub-module specifications
+========================================================
+
+Note: The bindings are experimental and may change while feature development
+is in progress. However attempt will be made to make changes backward
+compatible if possible.
+
+Required properties:
+- label:	Must be "netcp-qos"
+
+- compatible:	Must be "ti,netcp-qos"
+
+- interfaces:	interface specific configuration for QoS
+	-- tx-channel:	the navigator packet dma channel name for tx.
+			this is the channel to which a packet will be
+			dropped into when it comes out from a qostree.
+
+	-- tx-queues:	the subqueues to the QMSS QoS drop scheduler.
+
+NETCP QoS is a netcp device which appears under netcp-devices node.
+Example bindings for NETCP QoS device is as follows:
+
+	netcp-devices {
+
+		<other netcp devices>
+
+		qos@0 {
+			label = "netcp-qos";
+			compatible = "ti,netcp-qos";
+			tx-channel = "nettx";
+
+			interfaces {
+				qos0: interface-0 {
+					tx-queues = <645 8072 8073 8074
+						     8075 8076 8077>;
+				};
+				qos1: interface-1 {
+					tx-queues = <645 6472 6473 6474
+							6475 6476 6477>;
+				};
+			};
+		};
+	};

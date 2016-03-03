@@ -147,6 +147,18 @@ config TI_KEYSTONE_NETCP_PA2
           <file:Documentation/arm/keystone/netcp-pa.txt> to know more details
 	  about the driver.
 
+config TI_KEYSTONE_NETCP_QOS
+	depends on TI_KEYSTONE_NETCP
+	tristate "TI Keystone NETCP QOS driver"
+	select KEYSTONE_NAVIGATOR_QMSS_QOS
+	---help---
+
+	  This driver provides Quality of Service support on TI's
+	  Keystone platforms.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called netcp_qos.
+
 config TLAN
 	tristate "TI ThunderLAN support"
 	depends on (PCI || EISA)
