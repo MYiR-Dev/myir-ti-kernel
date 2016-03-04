@@ -32,6 +32,7 @@
 #include <linux/soc/ti/knav_qmss.h>
 
 #include "knav_qmss.h"
+#include "knav_qmss_qos.h"
 
 static struct knav_device *kdev;
 static DEFINE_MUTEX(knav_dev_lock);
@@ -1311,6 +1312,12 @@ static int knav_setup_queue_range(struct knav_device *kdev,
 
 	if (of_get_property(node, "accumulator", NULL)) {
 		ret = knav_init_acc_range(kdev, node, range);
+		if (ret < 0) {
+			devm_kfree(dev, range);
+			return ret;
+		}
+	} else if (of_get_property(node, "qos-cfg", NULL)) {
+		ret = knav_init_qos_range(kdev, node, range);
 		if (ret < 0) {
 			devm_kfree(dev, range);
 			return ret;

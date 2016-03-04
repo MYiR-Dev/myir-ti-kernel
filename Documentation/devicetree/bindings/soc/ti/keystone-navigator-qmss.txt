@@ -113,6 +113,44 @@ Optional properties:
 			  - PDSP control/status region registers.
 			  - PDSP command interface region.
 
+- qos-inputs - quality of service configuration
+  -- qrange = <start number> :
+		number of queues staring at queue number,
+		start are reserved for QoS
+  -- pdsp-id = <x> :
+		the qmss pdsp that has the QoS firmware :
+  -- ticks-per-sec = <ticks> :
+		the ticks per sec
+  -- qos-cfg = <inputs_per_port int_num qos_ticks drop_ticks seed_0,1,2> :
+		number of input queues per QoS firmware physical port,
+		timer interrupt number,
+		qos scheduler timer tick rate,
+		drop scheduler timer tick rate,
+		seeds to random number generator for dropping/marking packets
+  -- sched-port-configs = <start count size> :
+		scheduler port start index,
+		number of scheduler ports,
+		size of address space for scheduler port
+  -- drop-out-profiles = <start count size> :
+		output profile start index,
+		number of output profiles,
+		size of address space for output profile
+  -- drop-cfg-profiles = <start count size> :
+		config profile start index,
+		number of config profiles,
+		size of address space for config profile
+  -- drop-queue-configs = <start count size> :
+		drop queue config start index,
+		number of drop queue configs,
+		size of queue config address space
+  -- drop-policies = <&droppolicies> :
+		phandle for drop policies
+  -- qos-tree = <&qostree> :
+		phandle for the qos tree configuration
+  -- statistic-profiles = <start count> :
+		statistics profile start index,
+		number of statistics profiles
+
 Example:
 
 pdsp_intd: intd@2a0c000 {
@@ -190,6 +228,48 @@ qmss: qmss@2a40000 {
 			};
 			netcp-tx {
 				qrange = <640 9>;
+				qalloc-by-id;
+			};
+		};
+		qos {
+			qosinputs0: qos-inputs-0 {
+				qrange = <8000 192>;
+				pdsp-id			= <3>;
+				ticks-per-sec		= <10000>;
+				/* inputs_per_port
+				 * drop cfg int_num
+				 * drop cfg qos_ticks
+				 * drop cfg drop_ticks
+				 * drop cfg seed_0,1,2
+				 */
+				qos-cfg			= <4 50 1 1 0xf00 0 0>;
+				/* 4 types of shadows
+				 *     each with <start-idx cnt size>
+				 */
+				sched-port-configs	= <0 20 0x1c8>;
+				drop-out-profiles	= <0 36 0xc>;
+				drop-cfg-profiles	= <0 8 0x14>;
+				drop-queue-configs	= <0 80 0x4>;
+
+				drop-policies           = <&droppolicies>;
+				qos-tree                = <&qostree0>;
+				statistics-profiles	= <0 48>;
+				qalloc-by-id;
+			};
+			qosinputs1: qos-inputs-1 {
+				qrange = <6400 192>;
+				pdsp-id			= <7>;
+				ticks-per-sec		= <10000>;
+				qos-cfg			= <4 50 1 1 0xf00 0 0>;
+
+				sched-port-configs	= <0 20 0x1c8>;
+				drop-out-profiles	= <0 36 0xc>;
+				drop-cfg-profiles	= <0 8 0x14>;
+				drop-queue-configs	= <0 80 0x4>;
+
+				drop-policies           = <&droppolicies>;
+				qos-tree                = <&qostree1>;
+				statistics-profiles	= <0 48>;
 				qalloc-by-id;
 			};
 		};

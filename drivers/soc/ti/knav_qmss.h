@@ -148,6 +148,7 @@ struct knav_pdsp_info {
 	struct list_head				list;
 	bool						loaded;
 	bool						started;
+	struct knav_qos_info				*qos_info;
 };
 
 struct knav_qmgr_info {
@@ -355,6 +356,7 @@ struct knav_range_info {
 	struct knav_range_ops		*ops;
 	struct knav_acc_info		acc_info;
 	struct knav_acc_channel	*acc;
+	struct knav_qos_info		*qos_info;
 	unsigned			num_irqs;
 	struct knav_irq_info		irqs[RANGE_MAX_IRQS];
 };

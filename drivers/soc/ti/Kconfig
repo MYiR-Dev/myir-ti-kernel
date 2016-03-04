@@ -29,6 +29,17 @@ config KEYSTONE_NAVIGATOR_QMSS
 
 	  If unsure, say N.
 
+config KEYSTONE_NAVIGATOR_QMSS_QOS
+	tristate "Keystone Queue Manager Sub System QoS"
+	depends on TI_KEYSTONE_NETCP_QOS
+	help
+	  Say y here to enable the Keystone multicore Navigator Queue
+	  Manager QoS support. It initiates and configures the QMSS
+	  PDSP QoS firmware that is responsible for policing and
+	  maintaining healthy packet flows in the system.
+
+	  If unsure, say N.
+
 config KEYSTONE_NAVIGATOR_DMA
 	tristate "TI Keystone Navigator Packet DMA support"
 	depends on ARCH_KEYSTONE
