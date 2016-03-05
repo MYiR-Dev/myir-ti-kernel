@@ -1591,6 +1591,7 @@ static int knav_queue_init_pdsps(struct knav_device *kdev,
 	struct device *dev = kdev->dev;
 	struct knav_pdsp_info *pdsp;
 	struct device_node *child;
+	const char *fw_type;
 	int ret;
 
 	for_each_child_of_node(pdsps, child) {
@@ -1606,6 +1607,19 @@ static int knav_queue_init_pdsps(struct knav_device *kdev,
 			devm_kfree(dev, pdsp);
 			continue;
 		}
+
+		ret = of_property_read_string(child, "firmware_type", &fw_type);
+		if ((ret < 0) || !fw_type || (strcmp(fw_type, "acc") == 0)) {
+			pdsp->firmware  = &knav_acc_firmwares[0];
+			pdsp->num_firmwares = ARRAY_SIZE(knav_acc_firmwares);
+			pdsp->firmware_type = KNAV_PDSP_FW_TYPE_ACC;
+		} else {
+			dev_err(dev, "unknown firmware_type %s for pdsp %s\n",
+				fw_type, pdsp->name);
+			devm_kfree(dev, pdsp);
+			continue;
+		}
+		dev_dbg(dev, "%s: fw type %s\n", pdsp->name, fw_type);
 
 		of_property_read_u32(child, "id", &pdsp->id);
 		list_add_tail(&pdsp->list, &kdev->pdsps);
@@ -1649,10 +1663,9 @@ static int knav_queue_load_pdsp(struct knav_device *kdev,
 	bool found = false;
 	u32 *fwdata;
 
-	for (i = 0; i < ARRAY_SIZE(knav_acc_firmwares); i++) {
-		if (knav_acc_firmwares[i]) {
-			ret = request_firmware_direct(&fw,
-						      knav_acc_firmwares[i],
+	for (i = 0; i < pdsp->num_firmwares; i++) {
+		if (pdsp->firmware[i]) {
+			ret = request_firmware_direct(&fw, pdsp->firmware[i],
 						      kdev->dev);
 			if (!ret) {
 				found = true;
@@ -1662,12 +1675,13 @@ static int knav_queue_load_pdsp(struct knav_device *kdev,
 	}
 
 	if (!found) {
-		dev_err(kdev->dev, "failed to get firmware for pdsp\n");
+		dev_err(kdev->dev, "failed to get firmware for pdsp %s\n",
+			pdsp->name);
 		return -ENODEV;
 	}
 
-	dev_info(kdev->dev, "firmware file %s downloaded for PDSP\n",
-		 knav_acc_firmwares[i]);
+	dev_info(kdev->dev, "firmware file %s downloaded for %s\n",
+		 pdsp->firmware[i], pdsp->name);
 
 	writel_relaxed(pdsp->id + 1, pdsp->command + 0x18);
 	/* download the firmware */

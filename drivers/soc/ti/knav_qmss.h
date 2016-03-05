@@ -127,6 +127,9 @@ struct knav_acc_channel {
 	atomic_t		retrigger_count;
 };
 
+#define KNAV_PDSP_FW_TYPE_ACC				0
+#define KNAV_PDSP_FW_TYPE_QOS				1
+
 struct knav_pdsp_info {
 	const char					*name;
 	struct knav_reg_pdsp_regs  __iomem		*regs;
@@ -138,6 +141,9 @@ struct knav_pdsp_info {
 	struct regmap					*intd_regmap;
 	void __iomem					*intd;
 	u32 __iomem					*iram;
+	const char					**firmware;
+	u32						num_firmwares;
+	u32						firmware_type;
 	u32						id;
 	struct list_head				list;
 	bool						loaded;

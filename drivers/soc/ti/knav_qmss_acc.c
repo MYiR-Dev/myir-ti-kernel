@@ -515,7 +515,7 @@ int knav_init_acc_range(struct knav_device *kdev,
 		return -EINVAL;
 	}
 
-	if (!pdsp->started) {
+	if (!pdsp->started || (pdsp->firmware_type != KNAV_PDSP_FW_TYPE_ACC)) {
 		dev_err(kdev->dev, "pdsp id %d not started for range %s\n",
 			info->pdsp_id, range->name);
 		return -ENODEV;
