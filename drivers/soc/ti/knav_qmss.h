@@ -327,6 +327,9 @@ struct knav_range_ops {
 			       struct knav_queue_inst *inst);
 	int	(*set_notify)(struct knav_range_info *range,
 			      struct knav_queue_inst *inst, bool enabled);
+	int	(*queue_push)(struct knav_queue_inst *inst, dma_addr_t dma,
+			      unsigned size, unsigned flags);
+	dma_addr_t (*queue_pop)(struct knav_queue_inst *inst, unsigned *size);
 };
 
 struct knav_irq_info {

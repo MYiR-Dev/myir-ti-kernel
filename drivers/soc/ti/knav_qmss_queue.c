@@ -633,7 +633,18 @@ int knav_queue_push(void *qhandle, dma_addr_t dma,
 					unsigned size, unsigned flags)
 {
 	struct knav_queue *qh = qhandle;
+	struct knav_range_info *range = qh->inst->range;
 	u32 val;
+	int ret;
+
+	if (range->ops && range->ops->queue_push) {
+		ret = range->ops->queue_push(qh->inst, dma, size, flags);
+		if (!ret)
+			atomic_inc(&qh->stats.pushes);
+		else
+			atomic_inc(&qh->stats.push_errors);
+		return ret;
+	}
 
 	val = (u32)dma | ((size / 16) - 1);
 	writel_relaxed(val, &qh->reg_push[0].ptr_size_thresh);
@@ -654,8 +665,19 @@ dma_addr_t knav_queue_pop(void *qhandle, unsigned *size)
 {
 	struct knav_queue *qh = qhandle;
 	struct knav_queue_inst *inst = qh->inst;
+	struct knav_range_info *range = inst->range;
 	dma_addr_t dma;
 	u32 val, idx;
+	int ret;
+
+	if (range->ops && range->ops->queue_pop) {
+		ret = range->ops->queue_pop(qh->inst, size);
+		if (!ret)
+			atomic_inc(&qh->stats.pops);
+		else
+			atomic_inc(&qh->stats.pop_errors);
+		return ret;
+	}
 
 	/* are we accumulated? */
 	if (inst->descs) {
