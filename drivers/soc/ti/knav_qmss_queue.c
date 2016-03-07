@@ -743,6 +743,22 @@ void *knav_pool_desc_dma_to_virt(void *ph, dma_addr_t dma)
 }
 EXPORT_SYMBOL_GPL(knav_pool_desc_dma_to_virt);
 
+void *knav_desc_dma_to_virt(dma_addr_t dma, unsigned *desc_size)
+{
+	struct knav_region *reg_itr;
+
+	for_each_region(kdev, reg_itr) {
+		if ((reg_itr->dma_start <= dma) && (dma < reg_itr->dma_end)) {
+			*desc_size = reg_itr->desc_size;
+			return reg_itr->virt_start + (dma - reg_itr->dma_start);
+		}
+	}
+
+	*desc_size = 0;
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(knav_desc_dma_to_virt);
+
 /**
  * knav_pool_create()	- Create a pool of descriptors
  * @name		- name to give the pool handle
@@ -753,8 +769,7 @@ EXPORT_SYMBOL_GPL(knav_pool_desc_dma_to_virt);
  * Returns a pool handle on success.
  * Use IS_ERR_OR_NULL() to identify error values on return.
  */
-void *knav_pool_create(const char *name,
-					int num_desc, int region_id)
+void *knav_pool_create(const char *name, int num_desc, int region_id)
 {
 	struct knav_region *reg_itr, *region = NULL;
 	struct knav_pool *pool, *pi;
@@ -961,6 +976,27 @@ void *knav_pool_desc_unmap(void *ph, dma_addr_t dma, unsigned dma_sz)
 	return desc;
 }
 EXPORT_SYMBOL_GPL(knav_pool_desc_unmap);
+
+/**
+ * knav_dma_desc_unmap()	- Unmap descriptor after DMA transfer
+ * @dma				- DMA address of descriptor to unmap
+ * @dma_sz			- size of descriptor to unmap
+ * @desc			- Virt addr of descriptor to unmap
+ * @pool			- handle of pool from which desc is obtained
+ *
+ * Called after knav_desc_dma_to_virt to complete the unmap of
+ * a descriptor.
+ */
+void knav_dma_desc_unmap(dma_addr_t dma, unsigned dma_sz,
+			 void *desc, unsigned desc_sz, void *ph)
+{
+	struct knav_pool *pool = ph;
+
+	desc_sz = min(dma_sz, desc_sz);
+	dma_sync_single_for_cpu(pool->dev, dma, desc_sz, DMA_FROM_DEVICE);
+	prefetch(desc);
+}
+EXPORT_SYMBOL_GPL(knav_dma_desc_unmap);
 
 /**
  * knav_pool_count()	- Get the number of descriptors in pool.
