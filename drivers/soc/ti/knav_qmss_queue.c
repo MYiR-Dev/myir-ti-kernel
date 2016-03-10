@@ -75,6 +75,7 @@ static DEFINE_MUTEX(knav_dev_lock);
  * until a firmware file is found.
  */
 const char *knav_acc_firmwares[] = {"ks2_qmss_pdsp_acc48.bin"};
+const char *knav_qos_firmwares[] = {"ks2_qmss_pdsp_qos.bin"};
 
 static bool device_ready;
 
@@ -1613,6 +1614,10 @@ static int knav_queue_init_pdsps(struct knav_device *kdev,
 			pdsp->firmware  = &knav_acc_firmwares[0];
 			pdsp->num_firmwares = ARRAY_SIZE(knav_acc_firmwares);
 			pdsp->firmware_type = KNAV_PDSP_FW_TYPE_ACC;
+		} else if (strcmp(fw_type, "qos") == 0) {
+			pdsp->firmware  = &knav_qos_firmwares[0];
+			pdsp->num_firmwares = ARRAY_SIZE(knav_qos_firmwares);
+			pdsp->firmware_type = KNAV_PDSP_FW_TYPE_QOS;
 		} else {
 			dev_err(dev, "unknown firmware_type %s for pdsp %s\n",
 				fw_type, pdsp->name);
