@@ -19,6 +19,7 @@ qmss: qmss@2a40000 {
 	#address-cells = <1>;
 	#size-cells = <1>;
 	clocks = <&chipclk13>;
+	clock-names = "qmss_clk";
 	ranges;
 	queue-range	= <0 0x2000>;
 	linkram0	= <0x100000 0x4000>;
