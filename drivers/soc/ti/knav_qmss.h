@@ -302,6 +302,7 @@ enum qmss_version {
 
 struct knav_device {
 	struct device				*dev;
+	struct clk				*clk;
 	unsigned				base_id;
 	unsigned				num_queues;
 	unsigned				num_queues_in_use;

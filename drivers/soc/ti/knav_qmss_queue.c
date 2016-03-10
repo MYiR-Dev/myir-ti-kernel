@@ -16,6 +16,7 @@
  * General Public License for more details.
  */
 
+#include <linux/clk.h>
 #include <linux/module.h>
 #include <linux/io.h>
 #include <linux/mfd/syscon.h>
@@ -1857,6 +1858,11 @@ static int knav_queue_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, kdev);
 	kdev->dev = dev;
+
+	kdev->clk = clk_get(dev, "qmss_clk");
+	if (IS_ERR(kdev->clk))
+		kdev->clk = NULL;
+
 	INIT_LIST_HEAD(&kdev->queue_ranges);
 	INIT_LIST_HEAD(&kdev->qmgrs);
 	INIT_LIST_HEAD(&kdev->pools);

@@ -20,6 +20,7 @@ Required properties:
 - compatible	: Must be "ti,keystone-navigator-qmss";
 		: Must be "ti,keystone-navigator-qmss-l" for NSS Lite
 - clocks	: phandle to the reference clock for this device.
+- clock-names	: names of the clocks in the clocks property.
 - queue-range	: <start number> total range of queue numbers for the device.
 - linkram0	: <address size> for internal link ram, where size is the total
 		  link ram entries.
@@ -125,6 +126,7 @@ qmss: qmss@2a40000 {
 	#address-cells = <1>;
 	#size-cells = <1>;
 	clocks = <&chipclk13>;
+	clock-names = "qmss_clk";
 	ranges;
 	queue-range	= <0 0x4000>;
 	linkram0	= <0x100000 0x8000>;
