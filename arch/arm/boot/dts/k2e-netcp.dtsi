@@ -205,6 +205,8 @@ knav_dmas: knav_dmas@0 {
 			  <0x24189000 0x1000>;
 		reg-names = "global", "txchan", "rxchan",
 				"txsched", "rxflow";
+		/* enable for allowing user space LLDs to work */
+		ti,enable-all;
 	};
 
 	dma_xgbe: dma_xgbe@0 {
