@@ -193,3 +193,6 @@
 &gbe_serdes0 {
 	status = "okay";
 };
+
+#include "keystone-uio.dtsi"
+#include "k2e-uio.dtsi"
