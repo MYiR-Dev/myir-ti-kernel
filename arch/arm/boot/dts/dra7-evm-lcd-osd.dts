@@ -13,3 +13,5 @@
 	interrupt-parent = <&gpio1>;
 	interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
 };
+
+#include "dra7xx-evm-cmem.dtsi"

@@ -1420,3 +1420,5 @@
 	mboxes = <&mailbox6 &mbox_dsp2_ipc3x>;
 	timers = <&timer6>;
 };
+
+#include "dra7xx-evm-cmem.dtsi"
