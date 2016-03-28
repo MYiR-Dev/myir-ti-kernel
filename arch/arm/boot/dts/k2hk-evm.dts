@@ -244,3 +244,4 @@
 
 #include "keystone-uio.dtsi"
 #include "k2hk-uio.dtsi"
+#include "k2hk-evm-cmem.dtsi"
