@@ -603,3 +603,5 @@
 		};
 	};
 };
+
+#include "k2g-evm-cmem.dtsi"
