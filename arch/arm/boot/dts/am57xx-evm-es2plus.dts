@@ -11,3 +11,5 @@
 / {
 	model = "TI AM572x EVM ES2+";
 };
+
+#include "am57xx-evm-cmem.dtsi"

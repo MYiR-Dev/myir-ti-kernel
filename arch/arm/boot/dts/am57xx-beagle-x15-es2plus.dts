@@ -166,3 +166,5 @@
 	sd-uhs-sdr25;
 	sd-uhs-sdr12;
 };
+
+#include "am57xx-evm-cmem.dtsi"

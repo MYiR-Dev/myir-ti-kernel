@@ -17,3 +17,5 @@
 	interrupt-parent = <&gpio5>;
 	interrupts = <6 IRQ_TYPE_EDGE_FALLING>;
 };
+
+#include "am57xx-evm-cmem.dtsi"
