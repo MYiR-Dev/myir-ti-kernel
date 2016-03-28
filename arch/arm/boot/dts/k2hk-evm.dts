@@ -241,3 +241,6 @@
 &gbe_serdes {
 	status = "okay";
 };
+
+#include "keystone-uio.dtsi"
+#include "k2hk-uio.dtsi"
