@@ -177,3 +177,4 @@
 
 #include "keystone-uio.dtsi"
 #include "k2l-uio.dtsi"
+#include "k2l-evm-cmem.dtsi"
