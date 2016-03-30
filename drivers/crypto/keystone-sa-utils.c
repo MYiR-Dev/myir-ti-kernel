@@ -1434,7 +1434,7 @@ err_1:
 	if (req_ctx)
 		kmem_cache_free(pdata->dma_req_ctx_cache, req_ctx);
 err_0:
-	atomic_add((sg_nents - SA_NUM_DMA_META_ELEMS), &pdata->tx_dma_desc_cnt);
+	atomic_add(sg_nents, &pdata->tx_dma_desc_cnt);
 	atomic_inc(&pdata->stats.tx_dropped);
 	return ret;
 }
