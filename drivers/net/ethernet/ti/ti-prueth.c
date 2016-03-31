@@ -726,8 +726,9 @@ static int prueth_tx_enqueue(struct prueth_emac *emac, struct sk_buff *skb,
 	int write_block, read_block, free_blocks, update_block, pkt_block_size;
 	bool buffer_wrapped = false;
 	void *src_addr;
-	void __iomem *dst_addr;
-	void __iomem *ocmc_ram = emac->prueth->mem[PRUETH_MEM_OCMC].va;
+	void *dst_addr;
+	/* OCMC RAM is not cached and write order is not important */
+	void *ocmc_ram = (__force void *)emac->prueth->mem[PRUETH_MEM_OCMC].va;
 	void __iomem *dram;
 	u32 wr_buf_desc;
 	int ret;
@@ -805,15 +806,15 @@ static int prueth_tx_enqueue(struct prueth_emac *emac, struct sk_buff *skb,
 			bytes = pktlen;
 
 		/* copy non-wrapped part */
-		memcpy_toio(dst_addr, src_addr, bytes);
+		memcpy(dst_addr, src_addr, bytes);
 
 		/* copy wrapped part */
 		src_addr += bytes;
 		remaining = pktlen - bytes;
 		dst_addr = ocmc_ram + txqueue->buffer_offset;
-		memcpy_toio(dst_addr, src_addr, remaining);
+		memcpy(dst_addr, src_addr, remaining);
 	} else {
-		memcpy_toio(dst_addr, src_addr, pktlen);
+		memcpy(dst_addr, src_addr, pktlen);
 	}
 
 	/* update first buffer descriptor */
@@ -850,9 +851,10 @@ static int emac_rx_packet(struct prueth_emac *emac, u16 *bd_rd_ptr,
 	int read_block, update_block, pkt_block_size;
 	bool buffer_wrapped = false;
 	struct sk_buff *skb;
-	void __iomem *src_addr;
+	void *src_addr;
 	void *dst_addr;
-	void __iomem *ocmc_ram = emac->prueth->mem[PRUETH_MEM_OCMC].va;
+	/* OCMC RAM is not cached and read order is not important */
+	void *ocmc_ram = (__force void *)emac->prueth->mem[PRUETH_MEM_OCMC].va;
 
 	/* the PRU firmware deals mostly in pointers already
 	 * offset into ram, we would like to deal in indexes
@@ -904,7 +906,7 @@ static int emac_rx_packet(struct prueth_emac *emac, u16 *bd_rd_ptr,
 			bytes = pkt_info.length;
 
 		/* copy non-wrapped part */
-		memcpy_fromio(dst_addr, src_addr, bytes);
+		memcpy(dst_addr, src_addr, bytes);
 
 		/* copy wrapped part */
 		dst_addr += bytes;
@@ -913,9 +915,9 @@ static int emac_rx_packet(struct prueth_emac *emac, u16 *bd_rd_ptr,
 			src_addr = src_addr + bytes;
 		else
 			src_addr = ocmc_ram + rxqueue->buffer_offset;
-		memcpy_fromio(dst_addr, src_addr, remaining);
+		memcpy(dst_addr, src_addr, remaining);
 	} else {
-		memcpy_fromio(dst_addr, src_addr, pkt_info.length);
+		memcpy(dst_addr, src_addr, pkt_info.length);
 	}
 
 	/* send packet up the stack */
