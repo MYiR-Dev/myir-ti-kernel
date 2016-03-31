@@ -1230,8 +1230,8 @@ static int emac_ndo_start_xmit(struct sk_buff *skb, struct net_device *ndev)
 	}
 
 	if (ret) {
-		if (netif_msg_tx_err(emac) && net_ratelimit())
-			netdev_err(ndev, "packet queue failed: %d", ret);
+		if (ret != -ENOBUFS && netif_msg_tx_err(emac) && net_ratelimit())
+			netdev_err(ndev, "packet queue failed: %d\n", ret);
 		goto fail_tx;
 	}
 
