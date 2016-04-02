@@ -18,6 +18,11 @@
 	model = "TI AM437x Industrial Development Kit";
 	compatible = "ti,am437x-idk-evm","ti,am4372","ti,am43";
 
+	aliases {
+		ethernet2 = &pruss1_emac0;
+		ethernet3 = &pruss1_emac1;
+	};
+
 	v24_0d: fixed-regulator-v24_0d {
 		compatible = "regulator-fixed";
 		regulator-name = "V24_0D";
@@ -227,6 +232,51 @@
 		>;
 	};
 
+	pruss1_eth_default: pruss1_eth_default {
+		pinctrl-single,pins = <
+			0xa0 (PIN_INPUT | MUX_MODE2)	/* dss_data0.pr1_mii_mt0_clk */
+			0xb4 (PIN_OUTPUT | MUX_MODE2)	/* dss_data5.pr1_mii0_txd0 */
+			0xb0 (PIN_OUTPUT | MUX_MODE2)	/* dss_data4.pr1_mii0_txd1 */
+			0xac (PIN_OUTPUT | MUX_MODE2)	/* dss_data3.pr1_mii0_txd2 */
+			0xa8 (PIN_OUTPUT | MUX_MODE2)	/* dss_data2.pr1_mii0_txd3 */
+			0xcc (PIN_INPUT | MUX_MODE5)	/* dss_data11.pr1_mii0_rxd0 */
+			0xc8 (PIN_INPUT | MUX_MODE5)	/* dss_data10.pr1_mii0_rxd1 */
+			0xc4 (PIN_INPUT | MUX_MODE5)	/* dss_data9.pr1_mii0_rxd2 */
+			0xc0 (PIN_INPUT | MUX_MODE5)	/* dss_data8.pr1_mii0_rxd3 */
+			0xa4 (PIN_OUTPUT | MUX_MODE2)	/* dss_data1.pr1_mii0_txen */
+			0xd8 (PIN_INPUT | MUX_MODE5)	/* dss_data14.pr1_mii_mr0_clk */
+			0xdc (PIN_INPUT | MUX_MODE5)	/* dss_data15.pr1_mii0_rxdv */
+			0xd4 (PIN_INPUT | MUX_MODE5)	/* dss_data13.pr1_mii0_rxer */
+			0xd0 (PIN_INPUT | MUX_MODE5)	/* dss_data12.pr1_mii0_rxlink */
+			0x240 (PIN_INPUT | MUX_MODE5)	/* gpio5_10.pr1_mii0_crs */
+			0x238 (PIN_INPUT | MUX_MODE5)	/* gpio5_8.pr1_mii0_col */
+			0x58 (PIN_INPUT | MUX_MODE5)	/* gpmc_a6.pr1_mii_mt1_clk */
+			0x54 (PIN_OUTPUT | MUX_MODE5)	/* gpmc_a5.pr1_mii1_txd0 */
+			0x50 (PIN_OUTPUT | MUX_MODE5)	/* gpmc_a4.pr1_mii1_txd1 */
+			0x4c (PIN_OUTPUT | MUX_MODE5)	/* gpmc_a3.pr1_mii1_txd2 */
+			0x48 (PIN_OUTPUT | MUX_MODE5)	/* gpmc_a2.pr1_mii1_txd3 */
+			0x6c (PIN_INPUT | MUX_MODE5)	/* gpmc_a11.pr1_mii1_rxd0 */
+			0x68 (PIN_INPUT | MUX_MODE5)	/* gpmc_a10.pr1_mii1_rxd1 */
+			0x64 (PIN_INPUT | MUX_MODE5)	/* gpmc_a9.pr1_mii1_rxd2 */
+			0x60 (PIN_INPUT | MUX_MODE5)	/* gpmc_a8.pr1_mii1_rxd3 */
+			0x40 (PIN_OUTPUT | MUX_MODE5)	/* gpmc_a0.pr1_mii1_txen */
+			0x5c (PIN_INPUT | MUX_MODE5)	/* gpmc_a7.pr1_mii_mr1_clk */
+			0x44 (PIN_INPUT | MUX_MODE5)	/* gpmc_a1.pr1_mii1_rxdv */
+			0x74 (PIN_INPUT | MUX_MODE5)	/* gpmc_wpn.pr1_mii1_rxer */
+			0x24c (PIN_INPUT | MUX_MODE5)	/* gpio5_13.pr1_mii1_rxlink */
+			0x244 (PIN_INPUT | MUX_MODE5)	/* gpio5_11.pr1_mii1_crs */
+			0x78 (PIN_INPUT | MUX_MODE5)	/* gpmc_be1n.pr1_mii1_col */
+		>;
+	};
+
+	pruss1_mdio_default: pruss1_mdio_default {
+		pinctrl-single,pins = <
+			0x8c ( PIN_OUTPUT | MUX_MODE5 )		/* gpmc_clk.pr1_mdio_mdclk */
+			0x270 ( PIN_INPUT | MUX_MODE8 )		/* xdma_event_intr0.pr1_mdio_data */
+			0x200 ( PIN_INPUT_PULLUP | MUX_MODE7 )	/* cam1_data6.gpio4_20 */
+		>;
+	};
+
 	qspi_pins_default: qspi_pins_default {
 		pinctrl-single,pins = <
 			0x7c (PIN_OUTPUT_PULLUP | MUX_MODE3)	/* gpmc_csn0.qspi_csn */
@@ -409,4 +459,47 @@
 
 &sgx {
 	status = "okay";
+};
+
+&pruss1 {
+	pruss1_mdio: mdio@54432400 {
+		pinctrl-0 = <&pruss1_mdio_default>;
+		pinctrl-names = "default";
+		reset-gpios = <&gpio4 20 GPIO_ACTIVE_LOW>;
+		status = "okay";
+
+		pruss1_eth0_phy: ethernet-phy@0 {
+			reg = <0>;
+		};
+
+		pruss1_eth1_phy: ethernet-phy@1 {
+			reg = <1>;
+		};
+	};
+
+	/* Dual mac ethernet application node on icss1 */
+	pruss1_eth {
+		compatible = "ti,am4372-prueth";
+		pruss = <&pruss1>;
+		sram = <&ocmcram_nocache>;
+
+		pinctrl-0 = <&pruss1_eth_default>;
+		pinctrl-names = "default";
+
+		pruss1_emac0: ethernet-mii0 {
+			phy-handle = <&pruss1_eth0_phy>;
+			phy-mode = "mii";
+			sysevent-rx = <20>;	/* PRU_ARM_EVENT0 */
+			/* Filled in by bootloader */
+			local-mac-address = [00 00 00 00 00 00];
+		};
+
+		pruss1_emac1: ethernet-mii1 {
+			phy-handle = <&pruss1_eth1_phy>;
+			phy-mode = "mii";
+			sysevent-rx = <21>;	/* PRU_ARM_EVENT1 */
+			/* Filled in by bootloader */
+			local-mac-address = [00 00 00 00 00 00];
+		};
+	};
 };
