@@ -312,11 +312,11 @@
 				ti,mbox-tx = <0 0 0>;
 				ti,mbox-rx = <0 0 3>;
 			};
-			mbox_pru1_0: mbox_pru1_0 {
+			mbox_pru0_0: mbox_pru0_0 {
 				ti,mbox-tx = <2 0 0>;
 				ti,mbox-rx = <3 0 0>;
 			};
-			mbox_pru1_1: mbox_pru1_1 {
+			mbox_pru0_1: mbox_pru0_1 {
 				ti,mbox-tx = <4 0 0>;
 				ti,mbox-rx = <5 0 0>;
 			};
@@ -884,56 +884,42 @@
 			interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
-		pruss1: pruss@54400000 {
+		pruss0: pruss@54440000 {
 			compatible = "ti,am4372-pruss";
 			ti,hwmods = "pruss";
-			reg = <0x54400000 0x2000>,
-			      <0x54402000 0x2000>,
-			      <0x54410000 0x8000>,
-			      <0x54420000 0x2000>,
-			      <0x54426000 0x2000>,
-			      <0x5442e000 0x31c>,
-			      <0x54432000 0x58>;
-			reg-names = "dram0", "dram1", "shrdram2", "intc", "cfg",
-				    "iep", "mii_rt";
-			interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH
-				      GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH
-				      GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH
-				      GIC_SPI 23 IRQ_TYPE_LEVEL_HIGH
-				      GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH
-				      GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH
-				      GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
+			reg = <0x54440000 0x2000>,
+			      <0x54442000 0x2000>,
+			      <0x54460000 0x2000>,
+			      <0x54466000 0x2000>,
+			      <0x5446e000 0x31c>;
+			reg-names = "dram0", "dram1", "intc", "cfg";
+			interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH
+				      GIC_SPI 160 IRQ_TYPE_LEVEL_HIGH
+				      GIC_SPI 161 IRQ_TYPE_LEVEL_HIGH
+				      GIC_SPI 162 IRQ_TYPE_LEVEL_HIGH
+				      GIC_SPI 163 IRQ_TYPE_LEVEL_HIGH
+				      GIC_SPI 164 IRQ_TYPE_LEVEL_HIGH
+				      GIC_SPI 165 IRQ_TYPE_LEVEL_HIGH>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
 
-			pru1_0: pru0@54434000 {
+			pru0_0: pru0@54474000 {
 				compatible = "ti,am4372-pru-rproc";
-				reg = <0x54434000 0x3000>,
-				      <0x54422000 0x400>,
-				      <0x54422400 0x100>;
+				reg = <0x54474000 0x1000>,
+				      <0x54462000 0x400>,
+				      <0x54462400 0x100>;
 				reg-names = "iram", "control", "debug";
-				mboxes = <&mailbox &mbox_pru1_0>;
+				mboxes = <&mailbox &mbox_pru0_0>;
 			};
 
-			pru1_1: pru1@54438000 {
+			pru0_1: pru1@54438000 {
 				compatible = "ti,am4372-pru-rproc";
-				reg = <0x54438000 0x3000>,
-				      <0x54424000 0x400>,
-				      <0x54424400 0x100>;
+				reg = <0x54478000 0x1000>,
+				      <0x54464000 0x400>,
+				      <0x54464400 0x100>;
 				reg-names = "iram", "control", "debug";
-				mboxes = <&mailbox &mbox_pru1_1>;
-			};
-
-			pruss1_mdio: mdio@54432400 {
-				compatible = "ti,davinci_mdio";
-				reg = <0x54432400 0x90>;
-				clocks = <&dpll_core_m4_ck>;
-				clock-names = "fck";
-				bus_freq = <1000000>;
-				#address-cells = <1>;
-				#size-cells = <0>;
-				status = "disabled";
+				mboxes = <&mailbox &mbox_pru0_1>;
 			};
 		};
 

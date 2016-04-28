@@ -18,11 +18,6 @@
 	model = "TI AM437x Industrial Development Kit";
 	compatible = "ti,am437x-idk-evm","ti,am4372","ti,am43";
 
-	aliases {
-		ethernet2 = &pruss1_emac0;
-		ethernet3 = &pruss1_emac1;
-	};
-
 	v24_0d: fixed-regulator-v24_0d {
 		compatible = "regulator-fixed";
 		regulator-name = "V24_0D";
@@ -459,47 +454,4 @@
 
 &sgx {
 	status = "okay";
-};
-
-&pruss1 {
-	pruss1_mdio: mdio@54432400 {
-		pinctrl-0 = <&pruss1_mdio_default>;
-		pinctrl-names = "default";
-		reset-gpios = <&gpio4 20 GPIO_ACTIVE_LOW>;
-		status = "okay";
-
-		pruss1_eth0_phy: ethernet-phy@0 {
-			reg = <0>;
-		};
-
-		pruss1_eth1_phy: ethernet-phy@1 {
-			reg = <1>;
-		};
-	};
-
-	/* Dual mac ethernet application node on icss1 */
-	pruss1_eth {
-		compatible = "ti,am4372-prueth";
-		pruss = <&pruss1>;
-		sram = <&ocmcram_nocache>;
-
-		pinctrl-0 = <&pruss1_eth_default>;
-		pinctrl-names = "default";
-
-		pruss1_emac0: ethernet-mii0 {
-			phy-handle = <&pruss1_eth0_phy>;
-			phy-mode = "mii";
-			sysevent-rx = <20>;	/* PRU_ARM_EVENT0 */
-			/* Filled in by bootloader */
-			local-mac-address = [00 00 00 00 00 00];
-		};
-
-		pruss1_emac1: ethernet-mii1 {
-			phy-handle = <&pruss1_eth1_phy>;
-			phy-mode = "mii";
-			sysevent-rx = <21>;	/* PRU_ARM_EVENT1 */
-			/* Filled in by bootloader */
-			local-mac-address = [00 00 00 00 00 00];
-		};
-	};
 };
