@@ -200,6 +200,60 @@ static int evm_tda998x_init(struct snd_soc_pcm_runtime *rtd)
 	return 0;
 }
 
+/* davinci-evm machine dapm widgets */
+static const struct snd_soc_dapm_widget sgtl5000_dapm_widgets[] = {
+	SND_SOC_DAPM_HP("Headphone Jack", NULL),
+	SND_SOC_DAPM_LINE("Line Out", NULL),
+	SND_SOC_DAPM_MIC("Mic Jack", NULL),
+	SND_SOC_DAPM_LINE("Line In", NULL),
+};
+
+/* davinci-evm machine audio_mapnections to the codec pins */
+static const struct snd_soc_dapm_route sgtl5000_audio_map[] = {
+	/* Headphone connected to HP_OUT */
+	{"Headphone Jack", NULL, "HP_OUT"},
+
+	/* Line Out connected to LINE_OUT */
+	{"Line Out", NULL, "LINE_OUT"},
+
+	/* Mic connected to (MIC) */
+	{"MIC_IN", NULL, "Mic Bias"},
+	{"Mic Bias", NULL, "Mic Jack"},
+
+	/* Line In connected to (LINE_IN) */
+	{"LINE_IN", NULL, "Line In"},
+};
+
+/* Logic for a aic3x as connected on a davinci-evm */
+static int evm_sgtl5000_init(struct snd_soc_pcm_runtime *rtd)
+{
+	struct snd_soc_card *card = rtd->card;
+	struct device_node *np = card->dev->of_node;
+	int ret;
+
+	/* Add davinci-evm specific widgets */
+	snd_soc_dapm_new_controls(&card->dapm, sgtl5000_dapm_widgets,
+				  ARRAY_SIZE(sgtl5000_dapm_widgets));
+
+	if (np) {
+		ret = snd_soc_of_parse_audio_routing(card, "ti,audio-routing");
+		if (ret)
+			return ret;
+	} else {
+		/* Set up davinci-evm specific audio path audio_map */
+		snd_soc_dapm_add_routes(&card->dapm, sgtl5000_audio_map,
+					ARRAY_SIZE(sgtl5000_audio_map));
+	}
+
+	/* not connected */
+	snd_soc_dapm_nc_pin(&card->dapm, "LINE_OUT");
+	snd_soc_dapm_nc_pin(&card->dapm, "LINE_IN");
+	snd_soc_dapm_enable_pin(&card->dapm, "Mic Jack");
+
+	return 0;
+}
+
+
 /* davinci-evm digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link dm6446_evm_dai = {
 	.name = "TLV320AIC3X",
@@ -398,6 +452,17 @@ static struct snd_soc_dai_link evm_dai_tlv320aic3x = {
 		   SND_SOC_DAIFMT_IB_NF,
 };
 
+static struct snd_soc_dai_link myd_dai_sgtl5000 = {
+	.name		= "SGTL5000",
+	.stream_name	= "SGTL5000",
+	.codec_dai_name	= "sgtl5000",
+	.ops            = &evm_ops,
+	.init           = evm_sgtl5000_init,
+	.dai_fmt = SND_SOC_DAIFMT_DSP_B | SND_SOC_DAIFMT_CBM_CFM |
+		   SND_SOC_DAIFMT_IB_NF,
+
+};
+
 static struct snd_soc_dai_link evm_dai_tda998x_hdmi = {
 	.name		= "NXP TDA998x HDMI Chip",
 	.stream_name	= "HDMI",
@@ -416,6 +481,10 @@ static const struct of_device_id davinci_evm_dt_ids[] = {
 	{
 		.compatible = "ti,beaglebone-black-audio",
 		.data = &evm_dai_tda998x_hdmi,
+	},
+	{	
+		.compatible = "ti,sgtl5000-myd-audio",
+		.data = &myd_dai_sgtl5000,
 	},
 	{ /* sentinel */ }
 };
