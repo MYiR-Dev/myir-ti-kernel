@@ -96,6 +96,7 @@ struct davinci_mcasp {
 
 	int	sysclk_freq;
 	bool	bclk_master;
+	bool	ahclkx_pin;
 
 	/* McASP FIFO related */
 	u8	txnumevt;
@@ -493,9 +494,17 @@ static int davinci_mcasp_set_dai_fmt(struct snd_soc_dai *cpu_dai,
 
 		mcasp_clr_bits(mcasp, DAVINCI_MCASP_ACLKRCTL_REG, ACLKRE);
 		mcasp_clr_bits(mcasp, DAVINCI_MCASP_RXFMCTL_REG, AFSRE);
-
-		mcasp_clr_bits(mcasp, DAVINCI_MCASP_PDIR_REG,
+		if (mcasp->ahclkx_pin)
+		{
+			mcasp_clr_bits(mcasp, DAVINCI_MCASP_PDIR_REG,
+			       ACLKX /*| AHCLKX */| AFSX | ACLKR | AHCLKR | AFSR);
+		}
+		else
+		{
+			mcasp_clr_bits(mcasp, DAVINCI_MCASP_PDIR_REG,
 			       ACLKX | AHCLKX | AFSX | ACLKR | AHCLKR | AFSR);
+		}
+
 		mcasp->bclk_master = 0;
 		break;
 	default:
@@ -1670,6 +1679,7 @@ static struct davinci_mcasp_pdata *davinci_mcasp_set_pdata_from_of(
 	if (ret >= 0)
 		pdata->sram_size_capture = val;
 
+	pdata->clk_input_pin = of_property_read_bool(np, "ahclkx-pin");
 	return  pdata;
 
 nodata:
@@ -1877,6 +1887,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 		goto err;
 	}
 
+	mcasp->ahclkx_pin = pdata->clk_input_pin;
 	mcasp->op_mode = pdata->op_mode;
 	/* sanity check for tdm slots parameter */
 	if (mcasp->op_mode == DAVINCI_MCASP_IIS_MODE) {
@@ -2101,6 +2112,35 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(&pdev->dev, "register PCM failed: %d\n", ret);
 		goto err;
+	}
+	
+	if(mcasp->ahclkx_pin)			
+	{
+			pm_runtime_get_sync(mcasp->dev);
+			/* 
+			 * Use AHCLKX for MCLK, and output to AHCLKX pin. MYIR
+			 */
+			/* 1. All PINS as McASP */
+			mcasp_set_reg(mcasp, DAVINCI_MCASP_PFUNC_REG, 0);
+			/* 2. set AHCLKX pin to output */
+			mcasp_set_bits(mcasp, DAVINCI_MCASP_PDIR_REG, AHCLKX);
+			/* 3. set HCLKXDIV to div-by-2 (12MHz) */ 
+ 			mcasp_mod_bits(mcasp, DAVINCI_MCASP_AHCLKXCTL_REG, 0x1, 0xFFF);
+ 			mcasp_mod_bits(mcasp, DAVINCI_MCASP_AHCLKRCTL_REG, AHCLKRDIV(1), AHCLKRDIV_MASK);				
+			/* 4. select internal clock for AHCLKX source */
+			mcasp_set_bits(mcasp, DAVINCI_MCASP_AHCLKXCTL_REG, AHCLKXE);
+	
+			/* 5. bring TXHCLK out of reset(apply the divider) */
+			mcasp_set_ctl_reg(mcasp, DAVINCI_MCASP_GBLCTLX_REG, TXHCLKRST);
+			
+//			printk(KERN_ERR"-==== 10: %#X\n", mcasp_get_reg(mcasp, 0x10));
+//			printk(KERN_ERR"-==== 14: %#X\n", mcasp_get_reg(mcasp, 0x14));
+//			printk(KERN_ERR"-==== 70: %#X\n", mcasp_get_reg(mcasp, 0x70)); 
+//			printk(KERN_ERR"-==== 74: %#X\n", mcasp_get_reg(mcasp, 0x74)); 
+//			printk(KERN_ERR"-==== 88: %#X\n", mcasp_get_reg(mcasp, 0x88)); 
+//			printk(KERN_ERR"-==== b0: %#X\n", mcasp_get_reg(mcasp, 0xb0)); 
+//			printk(KERN_ERR"-==== b4: %#X\n", mcasp_get_reg(mcasp, 0xb4)); 
+//			pm_runtime_put(mcasp->dev);
 	}
 
 	return 0;

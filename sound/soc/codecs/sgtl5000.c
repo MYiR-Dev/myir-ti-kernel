@@ -141,6 +141,7 @@ struct sgtl5000_priv {
 	int revision;
 	u8 micbias_resistor;
 	u8 micbias_voltage;
+	bool line_in_only;
 };
 
 /*
@@ -1330,9 +1331,18 @@ static int sgtl5000_probe(struct snd_soc_codec *codec)
 
 	snd_soc_write(codec, SGTL5000_CHIP_PAD_STRENGTH, 0x015f);
 
-	snd_soc_write(codec, SGTL5000_CHIP_ANA_CTRL,
+	if(sgtl5000->line_in_only)
+	{
+		snd_soc_write(codec, SGTL5000_CHIP_ANA_CTRL,
+			SGTL5000_HP_ZCD_EN |
+			SGTL5000_ADC_ZCD_EN| (1<<2));
+	}
+	else
+	{
+		snd_soc_write(codec, SGTL5000_CHIP_ANA_CTRL,
 			SGTL5000_HP_ZCD_EN |
 			SGTL5000_ADC_ZCD_EN);
+	}
 
 	snd_soc_update_bits(codec, SGTL5000_CHIP_MIC_CTRL,
 			SGTL5000_BIAS_R_MASK,
@@ -1517,6 +1527,15 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 		} else {
 			sgtl5000->micbias_voltage = 0;
 		}
+
+		if(of_property_read_bool(np, "line-in-only"))
+		{
+			sgtl5000->line_in_only = true;
+		}
+		else
+		{
+			sgtl5000->line_in_only = false;
+		}
 	}
 
 	i2c_set_clientdata(client, sgtl5000);
@@ -1525,7 +1544,12 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	ret = sgtl5000_fill_defaults(sgtl5000);
 	if (ret)
 		goto disable_clk;
-
+	if(sgtl5000->line_in_only)
+	{
+		ret = regmap_write(sgtl5000->regmap, SGTL5000_CHIP_ANA_CTRL, 0x0115);
+		if (ret)
+			goto disable_clk;
+	}
 	ret = snd_soc_register_codec(&client->dev,
 			&sgtl5000_driver, &sgtl5000_dai, 1);
 	if (ret)
