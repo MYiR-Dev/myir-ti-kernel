@@ -26,6 +26,7 @@
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
 #include <linux/uaccess.h>
+#include <linux/gpio/consumer.h>
 
 #define SC16IS7XX_NAME			"sc16is7xx"
 
@@ -1046,6 +1047,8 @@ static int sc16is7xx_probe(struct device *dev,
 	unsigned long freq, *pfreq = dev_get_platdata(dev);
 	int i, ret;
 	struct sc16is7xx_port *s;
+	
+	printk("==============%s flags= %ld irq= %d \r\n", __FUNCTION__, flags, irq);
 
 	if (IS_ERR(regmap))
 		return PTR_ERR(regmap);
@@ -1069,6 +1072,8 @@ static int sc16is7xx_probe(struct device *dev,
 		clk_prepare_enable(s->clk);
 		freq = clk_get_rate(s->clk);
 	}
+
+	printk("==============%s freq= %ld irq= %d \r\n", __FUNCTION__, freq, irq);
 
 	s->regmap = regmap;
 	s->devtype = devtype;
@@ -1210,12 +1215,27 @@ static int sc16is7xx_i2c_probe(struct i2c_client *i2c,
 	struct sc16is7xx_devtype *devtype;
 	unsigned long flags = 0;
 	struct regmap *regmap;
+	struct gpio_desc *gpio;
+	int ret;
 
 	if (i2c->dev.of_node) {
 		const struct of_device_id *of_id =
 				of_match_device(sc16is7xx_dt_ids, &i2c->dev);
 
+		if (!of_id)
+			return -ENODEV;
+
 		devtype = (struct sc16is7xx_devtype *)of_id->data;
+		
+        gpio = devm_gpiod_get(&i2c->dev, "reset");
+        if (!IS_ERR(gpio)) {
+                ret = gpiod_direction_output(gpio, 0);
+				msleep(200);
+				ret = gpiod_direction_output(gpio, 1);
+                if (ret)
+                        return ret;
+        }
+		
 	} else {
 		devtype = (struct sc16is7xx_devtype *)id->driver_data;
 		flags = IRQF_TRIGGER_FALLING;
@@ -1235,6 +1255,8 @@ static int sc16is7xx_i2c_remove(struct i2c_client *client)
 
 static const struct i2c_device_id sc16is7xx_i2c_id_table[] = {
 	{ "sc16is74x",	(kernel_ulong_t)&sc16is74x_devtype, },
+	{ "sc16is740",	(kernel_ulong_t)&sc16is74x_devtype, },
+	{ "sc16is741",	(kernel_ulong_t)&sc16is74x_devtype, },
 	{ "sc16is750",	(kernel_ulong_t)&sc16is750_devtype, },
 	{ "sc16is752",	(kernel_ulong_t)&sc16is752_devtype, },
 	{ "sc16is760",	(kernel_ulong_t)&sc16is760_devtype, },
