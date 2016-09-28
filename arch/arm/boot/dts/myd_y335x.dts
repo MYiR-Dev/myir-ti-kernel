@@ -43,6 +43,17 @@
 		regulator-boot-on;
 		regulator-always-on;
 	};
+
+	wlreg_on: fixedregulator@2{
+		compatible = "regulator-fixed";
+		regulator-name = "wlreg_on";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vbat>;
+		regulator-boot-on;
+		regulator-always-on;
+	};
+	
 	gpio_keys: volume_keys@0 {
 		compatible = "gpio-keys";
 		#address-cells = <1>;
@@ -82,6 +93,12 @@
 			default-state = "off";
 		};
 	
+	};
+
+	bcmdhd_wlan_0: bcmdhd_wlan@0 {
+		compatible = "android,bcmdhd_wlan";
+		wlreg_on-supply = <&wlreg_on>;
+		gpios = <&gpio0 23 0>;
 	};
 
 	beeper: beeper {
@@ -407,7 +424,7 @@
 		>;
 	};
 
-	/* wl12xx/wl18xx card on mmc3 */
+	/* usi card on mmc3 */
 	mmc3_pins: pinmux_mmc3_pins {
 		pinctrl-single,pins = <
 			0x30 (PIN_INPUT_PULLUP | MUX_MODE3)	/* gpmc_a12.mmc2_dat0, INPUT_PULLUP | MODE3 */
@@ -419,13 +436,13 @@
 		>;
 	};
 
-	/* wl12xx/wl18xx card enable/irq GPIOs. */
+	/* usi card enable/irq GPIOs. */
 	wlan_pins: pinmux_wlan_pins {
 		pinctrl-single,pins = <
-			0x20 (PIN_OUTPUT | MUX_MODE7)		/* WLAN_RESET gpmc_ad8.gpio2_22 */
-			0x24 (PIN_OUTPUT | MUX_MODE7)		/* WIFI_IRQ gpmc_ad9.gpio2_23 */
-			0x28 (PIN_OUTPUT | MUX_MODE7)		/* EXT_PWM_REQ  gpmc_ad10.gpio2_26*/
-			0x2c (PIN_OUTPUT | MUX_MODE7)		/* EXT_SMPS_REQ gpmc_ad11.gpio2_27*/
+			0x20 (PIN_OUTPUT | MUX_MODE7)		/* WLAN_RESET gpmc_ad8.gpio0_22 */
+			0x24 (PIN_INPUT_PULLUP | MUX_MODE7)		/* WIFI_IRQ gpmc_ad9.gpio0_23 */
+			0x28 (PIN_INPUT_PULLDOWN | MUX_MODE7)		/* EXT_PWM_REQ  gpmc_ad10.gpio0_26*/
+			0x2c (PIN_INPUT_PULLDOWN | MUX_MODE7)		/* EXT_SMPS_REQ gpmc_ad11.gpio0_27*/
 		>;
 	};
 
