@@ -105,11 +105,13 @@
 
     unused_pins_default: pinmux_unused_pins_default {
 		pinctrl-single,pins = <
+			0x2c4 ( PIN_INPUT_PULLDOWN | MUX_MODE7)  // usb1_drvvbus
 			>;
         };
 
 	unused_pins_sleep: pinmux_unused_pins_sleep {
 		pinctrl-single,pins = <
+			0x2c4 ( PIN_INPUT_PULLDOWN | MUX_MODE7)
 			>;
         };
 
@@ -126,6 +128,11 @@
 			0x1f0 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (AD21) cam1_data2.gpio4[16] */
 			0x1f4 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (AE22) cam1_data3.gpio4[17] */
 			0x1f8 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (AD22) cam1_data4.gpio4[18] */
+		>;
+	};
+	gpio3_pins: gpio3_pins_default {
+		pinctrl-single,pins = <
+		0x110 ( PIN_INPUT | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
 		>;
 	};
 
@@ -164,6 +171,82 @@
 		>;
 	};
 
+	uart0_pins_default: uart0_pins_default {
+		pinctrl-single,pins = <
+			0x170 ( PIN_INPUT | MUX_MODE0 ) /* (K25) uart0_rxd.uart0_rxd */
+			0x174 ( PIN_OUTPUT | MUX_MODE0 ) /* (J24) uart0_txd.uart0_txd */
+		>;
+	};
+
+	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	uart0_pins_sleep: uart0_pins_sleep {
+		pinctrl-single,pins = <
+			0x170 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (K25) uart0_rxd.uart0_rxd */
+			0x174 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (J24) uart0_txd.uart0_txd */
+		>;
+	};
+
+	uart3_pins_default: uart3_pins_default {
+		pinctrl-single,pins = <
+			0x228 ( PIN_INPUT | MUX_MODE0 ) /* (H25) uart3_rxd.uart3_rxd */
+			0x22c ( PIN_OUTPUT | MUX_MODE0 ) /* (H24) uart3_txd.uart3_txd */
+			0x230 ( PIN_INPUT | MUX_MODE0 ) /* (H22) uart3_ctsn.uart3_ctsn */
+			0x234 ( PIN_OUTPUT | MUX_MODE0 ) /* (K24) uart3_rtsn.uart3_rtsn */
+		>;
+	};
+
+	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	uart3_pins_sleep: uart3_pins_sleep {
+		pinctrl-single,pins = <
+			0x228 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (H25) uart3_rxd.uart3_rxd */
+			0x22c (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (H24) uart3_txd.uart3_txd */
+			0x230 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (H22) uart3_ctsn.uart3_ctsn */
+			0x234 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (K24) uart3_rtsn.uart3_rtsn */
+		>;
+	};
+	
+	uart5_pins_default: uart5_pins_default {
+		pinctrl-single,pins = <
+			0x108 ( PIN_INPUT | MUX_MODE3 ) /* (D16) mii1_col.uart5_rxd */
+			0x144 ( PIN_OUTPUT | MUX_MODE3 ) /* (A16) rmii1_ref_clk.uart5_txd */
+		>;
+	};
+
+	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	uart5_pins_sleep: uart5_pins_sleep {
+		pinctrl-single,pins = <
+			0x108 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (D16) mii1_col.uart5_rxd */
+			0x144 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (A16) mii1_rx_dv.uart5_txd */
+		>;
+	};	
+
+	dcan0_default: dcan0_default_pins {
+		pinctrl-single,pins = <
+			0x178 (PIN_OUTPUT | MUX_MODE2)		/* uart1_ctsn.d_can0_tx */
+			0x17c (PIN_INPUT_PULLUP | MUX_MODE2)	/* uart1_rtsn.d_can0_rx */
+		>;
+	};
+
+	dcan0_sleep: dcan0_sleep_pins {
+		pinctrl-single,pins = <
+			0x178 (PIN_INPUT_PULLUP | MUX_MODE7)	/* uart1_ctsn.gpio0_12 */
+			0x17c (PIN_INPUT_PULLUP | MUX_MODE7)	/* uart1_rtsn.gpio0_13 */
+		>;
+	};
+
+
+	usb1_pins_default: usb1_pins_default {
+		pinctrl-single,pins = <
+			0x2c0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE0)
+		>;
+	};
+
+	usb1_pins_sleep: usb1_pins_sleep {
+		pinctrl-single,pins = <
+			0x2c0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+		>;
+	};
+	
 	mmc1_pins_default: pinmux_mmc1_pins_default {
 		pinctrl-single,pins = <
 			0x100 (PIN_INPUT | MUX_MODE0) /* mmc0_clk.mmc0_clk */
@@ -313,6 +396,34 @@
 	};
 };
 
+&uart0 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart0_pins_default>;
+	pinctrl-1 = <&uart0_pins_sleep>;
+};
+
+&uart3 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart3_pins_default>;
+	pinctrl-1 = <&uart3_pins_sleep>;
+};
+
+&uart5 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart5_pins_default>;
+	pinctrl-1 = <&uart5_pins_sleep>;
+};
+
+&dcan0 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&dcan0_default>;
+	pinctrl-1 = <&dcan0_sleep>;
+	status = "okay";
+};
+
 &i2c0 {
 	status = "okay";
 	pinctrl-names = "default", "sleep";
@@ -445,6 +556,28 @@
 	status = "okay";
 };
 
+&gpio3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&gpio3_pins>;
+	status = "okay";
+
+	p2 {
+		gpio-hog;
+		gpios = <2 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "RS485_EN";
+	};
+	/* RS485_EN enable 
+	 * P2	| FUNCTION 
+	 *------|-----------
+	 * LOW	|   RS485 transmitter EN
+	 * 
+	 * When changing this line make sure the newly
+	 * selected device node is enabled and the previously
+	 * selected device node is disabled.
+	 */
+};
+
 &gpio4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&gpio4_pins>;
@@ -494,6 +627,9 @@
 };
 
 &usb1 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&usb1_pins_default>;
+	pinctrl-1 = <&usb1_pins_sleep>;
 	dr_mode = "otg";
 	status = "okay";
 };
