@@ -142,7 +142,6 @@
 	};
 	gpio3_pins: gpio3_pins_default {
 		pinctrl-single,pins = <
-		0x110 ( PIN_OUTPUT | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
 		0x2a8 ( PIN_OUTPUT | MUX_MODE7 ) /* (T24) EMU1.gpio3[8] */
 		>;
 	};
@@ -222,6 +221,7 @@
 	
 	uart5_pins_default: uart5_pins_default {
 		pinctrl-single,pins = <
+			0x110 ( PIN_OUTPUT | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
 			0x108 ( PIN_INPUT | MUX_MODE3 ) /* (D16) mii1_col.uart5_rxd */
 			0x144 ( PIN_OUTPUT | MUX_MODE3 ) /* (A16) rmii1_ref_clk.uart5_txd */
 		>;
@@ -230,6 +230,7 @@
 	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
 	uart5_pins_sleep: uart5_pins_sleep {
 		pinctrl-single,pins = <
+			0x110 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
 			0x108 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (D16) mii1_col.uart5_rxd */
 			0x144 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (A16) mii1_rx_dv.uart5_txd */
 		>;
@@ -461,6 +462,11 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart5_pins_default>;
 	pinctrl-1 = <&uart5_pins_sleep>;
+	rts-gpio = <&gpio3 2 GPIO_ACTIVE_HIGH>;
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
 };
 
 &dcan0 {
@@ -607,12 +613,12 @@
 	pinctrl-0 = <&gpio3_pins>;
 	status = "okay";
 
-	p2 {
-		gpio-hog;
-		gpios = <2 GPIO_ACTIVE_HIGH>;
-		output-low;
-		line-name = "RS485_EN";
-	};
+//	p2 {
+//		gpio-hog;
+//		gpios = <2 GPIO_ACTIVE_HIGH>;
+//		output-high;
+//		line-name = "RS485_EN";
+//	};
 	/* RS485_EN enable 
 	 * P2	| FUNCTION 
 	 *------|-----------
