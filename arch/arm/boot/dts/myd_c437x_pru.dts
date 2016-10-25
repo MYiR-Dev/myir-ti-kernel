@@ -89,6 +89,16 @@
 		};
 	};	
 
+	watchdog: watchdog {
+		/* CAT823T */
+		compatible = "linux,wdt-gpio";
+		pinctrl-names = "default";
+		pinctrl-0 = <&watchdog_pins>;
+		gpios = <&gpio4 8 GPIO_ACTIVE_LOW>;
+		hw_algo = "toggle";
+		always-running;
+		hw_margin_ms = <1000>;
+	};
 
 	backlight {
 		compatible = "pwm-backlight";
@@ -144,6 +154,10 @@
 		>;
 	};
 	
+	watchdog_pins: pinmux_watchdog_pins{
+		pinctrl-single,pins = <0x1d0 (PIN_OUTPUT_PULLDOWN | MUX_MODE7)>;
+	};	
+        
 	i2c0_pins_default: i2c0_pins_default {
 		pinctrl-single,pins = <
 			0x188 (PIN_INPUT | SLEWCTRL_FAST | MUX_MODE0) /* i2c0_sda.i2c0_sda */
