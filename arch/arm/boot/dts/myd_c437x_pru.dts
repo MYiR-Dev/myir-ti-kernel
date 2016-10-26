@@ -483,6 +483,12 @@
 	pinctrl-1 = <&i2c0_pins_sleep>;
 	clock-frequency = <400000>;
 
+	rx8025: rx8025@32 {
+		compatible = "epson,rx8025t";
+		reg = <0x32>;
+	};
+
+
 	at24@50 {
 		compatible = "at24,24c256";
 		pagesize = <64>;
