@@ -19,6 +19,7 @@
 	compatible = "ti,am437x-idk-evm","ti,am4372","ti,am43";
 
 	aliases {
+		display0 = &lcd0;
 		ethernet2 = &pruss1_emac0;
 		ethernet3 = &pruss1_emac1;
 	};
@@ -104,7 +105,33 @@
 		compatible = "pwm-backlight";
 		pwms = <&ecap0 0 50000 PWM_POLARITY_INVERTED>;
 		brightness-levels = <0 51 53 56 62 75 101 152 255>;
-		default-brightness-level = <8>;
+		default-brightness-level = <5>;
+	};
+	
+	lcd0: display {
+		compatible = "osddisplays,osd057T0559-34ts", "panel-dpi";
+		label = "lcd";
+
+		panel-timing {
+			clock-frequency = <36000000>;
+			hactive = <800>;
+			vactive = <480>;
+			hfront-porch = <210>;
+			hback-porch = <1>;
+			hsync-len = <43>;
+			vback-porch = <1>;
+			vfront-porch = <22>;
+			vsync-len = <22>;
+			hsync-active = <0>;
+			vsync-active = <0>;
+			de-active = <1>;
+			pixelclk-active = <1>;
+		};
+		port {
+			lcd_in: endpoint {
+				remote-endpoint = <&dpi_out>;
+			};
+		};
 	};
 };
 
@@ -148,8 +175,8 @@
 
 	gpio4_pins: gpio4_pins_default {
 		pinctrl-single,pins = <
-		0x1fc ( PIN_OUTPUT | MUX_MODE7 ) /* (AE23) cam1_data5.gpio4[19] */
-		0x204 ( PIN_OUTPUT | MUX_MODE7 ) /* (AE24) cam1_data7.gpio4[21] */
+		0x1fc ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (AE23) cam1_data5.gpio4[19] */
+		0x204 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (AE24) cam1_data7.gpio4[21] */
 		>;
 	};
 	
@@ -373,7 +400,76 @@
 			0x14c (PIN_INPUT_PULLDOWN | MUX_MODE7)
 		>;
 	};
+	
+	dss_pinctrl_default: dss_pinctrl_default {
+		pinctrl-single,pins = <
+			0x0A0 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS DATA 0 */
+			0x0A4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0A8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0AC (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0B0 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0B4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0B8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0BC (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0C0 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0C4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0C8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0CC (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0D0 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0D4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0D8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0DC (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS DATA 15 */
+			0x1CC (PIN_OUTPUT_PULLUP | MUX_MODE2) /* DSS DATA 16 */
+			0x1C8 (PIN_OUTPUT_PULLUP | MUX_MODE2)
+			0x1C4 (PIN_OUTPUT_PULLUP | MUX_MODE2)
+			0x1C0 (PIN_OUTPUT_PULLUP | MUX_MODE2)
+			0x1BC (PIN_OUTPUT_PULLUP | MUX_MODE2)
+			0x1B8 (PIN_OUTPUT_PULLUP | MUX_MODE2)
+			0x1B4 (PIN_OUTPUT_PULLUP | MUX_MODE2)
+			0x1B0 (PIN_OUTPUT_PULLUP | MUX_MODE2) /* DSS DATA 23 */
+			
+			0x0E0 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS VSYNC */
+			0x0E4 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS HSYNC */
+			0x0E8 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS PCLK */
+			0x0EC (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS AC BIAS EN */
+			0x238 (PIN_OUTPUT_PULLUP | MUX_MODE7) /* GPIO 5_8 to select LCD / HDMI */
+		>;
+	};
 
+	dss_pinctrl_sleep: dss_pinctrl_sleep {
+		pinctrl-single,pins = <
+			0x0A0 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0A4 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0A8 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0AC (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0B0 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0B4 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0B8 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0BC (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0C0 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0C4 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0C8 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0CC (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0D0 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0D4 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0D8 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0DC (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x1CC (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1C8 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1C4 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1C0 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1BC (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1B8 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1B4 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x1B0 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x0E0 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0E4 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x0E8 (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+			0x0EC (DS0_FORCE_OFF_MODE | DS0_PULL_UP_DOWN_EN | PULL_DISABLE | INPUT_EN | MUX_MODE7)
+			0x238 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
+		>;
+	};
+	
 	pruss1_eth_default: pruss1_eth_default {
 		pinctrl-single,pins = <
 			0xa0 (PIN_INPUT | MUX_MODE2)	/* dss_data0.pr1_mii_mt0_clk */
@@ -788,7 +884,7 @@
 };
 
 &cpsw_emac0 {
-	phy_id = <&davinci_mdio>, <4>;
+	phy_id = <&davinci_mdio>, <0>;
 	phy-mode = "rgmii";
 };
 
@@ -808,6 +904,21 @@
 
 &sgx {
 	status = "okay";
+};
+
+&dss {
+	status = "disabled";
+
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&dss_pinctrl_default>;
+	pinctrl-1 = <&dss_pinctrl_sleep>;
+
+	port {
+		dpi_out: endpoint@0 {
+			remote-endpoint = <&lcd_in>;
+			data-lines = <24>;
+		};
+	};
 };
 
 &pruss1 {
@@ -831,6 +942,7 @@
 		compatible = "ti,am4372-prueth";
 		pruss = <&pruss1>;
 		sram = <&ocmcram_nocache>;
+		status = "ok";
 
 		pinctrl-0 = <&pruss1_eth_default>;
 		pinctrl-names = "default";
