@@ -984,8 +984,9 @@ static int pruss_probe(struct platform_device *pdev)
 	int err, i, num_irqs;
 	struct pruss_platform_data *pdata = dev_get_platdata(dev);
 	const struct pruss_private_data *data;
-	const char *mem_names[PRUSS_MEM_MAX] = { "dram0", "dram1",
-						 "intc", "cfg" };
+	const char *mem_names[PRUSS_MEM_MAX] = { "dram0", "dram1", "shrdram2",
+						 "intc", "cfg", "iep",
+						 "mii_rt" };
 
 	if (!node) {
 		dev_err(dev, "Non-DT platform device not supported\n");
@@ -1147,10 +1148,10 @@ static struct of_dev_auxdata am335x_pruss_rproc_auxdata_lookup[] = {
 	{ /* sentinel */ },
 };
 
-static struct of_dev_auxdata am437x_pruss0_rproc_auxdata_lookup[] = {
-	OF_DEV_AUXDATA("ti,am4372-pru-rproc", 0x54474000, "54474000.pru0",
+static struct of_dev_auxdata am437x_pruss1_rproc_auxdata_lookup[] = {
+	OF_DEV_AUXDATA("ti,am4372-pru-rproc", 0x54434000, "54434000.pru0",
 		       NULL),
-	OF_DEV_AUXDATA("ti,am4372-pru-rproc", 0x54478000, "54478000.pru1",
+	OF_DEV_AUXDATA("ti,am4372-pru-rproc", 0x54438000, "54438000.pru1",
 		       NULL),
 	{ /* sentinel */ },
 };
@@ -1188,7 +1189,7 @@ static struct pruss_private_data am437x_priv_data = {
 	.num_irqs = 7,
 	.host_events = (BIT(2) | BIT(3) | BIT(4) | BIT(5) |
 			BIT(6) | BIT(8) | BIT(9)),
-	.aux_data = am437x_pruss0_rproc_auxdata_lookup,
+	.aux_data = am437x_pruss1_rproc_auxdata_lookup,
 	.has_reset = true,
 };
 
