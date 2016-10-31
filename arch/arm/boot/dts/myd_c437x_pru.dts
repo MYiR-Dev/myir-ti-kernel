@@ -32,6 +32,12 @@
 		regulator-always-on;
 		regulator-boot-on;
 	};
+	
+	osc_camera_12M: osc_camera_12M {
+	      #clock-cells = <0>;
+	      compatible = "fixed-clock";
+	      clock-frequency = <12000000>;
+	};
 
 	gpio_keys: volume_keys@0 {
 		compatible = "gpio-keys";
@@ -470,6 +476,61 @@
 		>;
 	};
 	
+	vpfe0_pins_default: vpfe0_pins_default {
+		pinctrl-single,pins = <
+			/*0x270 (PIN_OUTPUT_PULLUP | MUX_MODE3) */  /* xdma_event_intr0.clkout1 mode 3*/
+			0x1B0 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_hd mode 0*/
+			0x1B4 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_vd mode 0*/
+			0x1B8 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_field mode 0*/
+			0x1BC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_wen mode 0*/
+			0x1C0 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_pclk mode 0*/
+			0x1C4 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data8 mode 0*/
+			0x1C8 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data9 mode 0*/
+			0x208 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data0 mode 0*/
+			0x20C (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data1 mode 0*/
+			0x210 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data2 mode 0*/
+			0x214 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data3 mode 0*/
+			0x218 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data4 mode 0*/
+			0x21C (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data5 mode 0*/
+			0x220 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data6 mode 0*/
+			0x224 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam0_data7 mode 0*/
+			>;
+	};
+
+	vpfe0_pins_sleep: vpfe0_pins_sleep {
+		pinctrl-single,pins = <
+			0x1B0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_hd mode 0*/
+			0x1B4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_vd mode 0*/
+			0x1B8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_field mode 0*/
+			0x1BC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_wen mode 0*/
+			0x1C0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_pclk mode 0*/
+			0x1C4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data8 mode 0*/
+			0x1C8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data9 mode 0*/
+			0x208 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data0 mode 0*/
+			0x20C (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data1 mode 0*/
+			0x210 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data2 mode 0*/
+			0x214 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data3 mode 0*/
+			0x218 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data4 mode 0*/
+			0x21C (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data5 mode 0*/
+			0x220 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data6 mode 0*/
+			0x224 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data7 mode 0*/
+			>;
+	};
+	
+	camera0_pins_default: camera0_pins_default {
+		pinctrl-single,pins = <
+			0x278 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (H20) clkreq.gpio0[24] */
+			0x260 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (N20) spi2_sclk.gpio3[24] */
+			>;
+	};
+
+	camera0_pins_sleep: camera0_pins_sleep {
+		pinctrl-single,pins = <
+			0x278 ( PIN_INPUT_PULLUP | MUX_MODE7 ) /* (H20) clkreq.gpio0[24] */
+			0x260 ( PIN_INPUT_PULLUP | MUX_MODE7 ) /* (N20) spi2_sclk.gpio3[24] */
+			>;
+	};
+	
 	pruss1_eth_default: pruss1_eth_default {
 		pinctrl-single,pins = <
 			0xa0 (PIN_INPUT | MUX_MODE2)	/* dss_data0.pr1_mii_mt0_clk */
@@ -579,6 +640,27 @@
 	pinctrl-1 = <&i2c0_pins_sleep>;
 	clock-frequency = <400000>;
 
+	ov2659@30 {
+		status="okay";
+		compatible = "ovti,ov2659";
+		reg = <0x30>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&camera0_pins_default>;
+		pinctrl-1 = <&camera0_pins_sleep>;
+
+//		clocks = <&audio_mstrclk>;
+		clocks = <&osc_camera_12M>;
+		
+		clock-names = "xvclk";
+
+		port {
+			ov2659_1: endpoint {
+				remote-endpoint = <&vpfe0_ep>;
+				link-frequencies = /bits/ 64 <70000000>;
+			};
+		};
+	};
+	
 	rx8025: rx8025@32 {
 		compatible = "epson,rx8025t";
 		reg = <0x32>;
@@ -917,6 +999,23 @@
 		dpi_out: endpoint@0 {
 			remote-endpoint = <&lcd_in>;
 			data-lines = <24>;
+		};
+	};
+};
+
+&vpfe0 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&vpfe0_pins_default>;
+	pinctrl-1 = <&vpfe0_pins_sleep>;
+
+	port {
+		vpfe0_ep: endpoint {
+			remote-endpoint = <&ov2659_1>;
+			ti,am437x-vpfe-interface = <0>;
+			bus-width = <8>;
+			hsync-active = <0>;
+			vsync-active = <0>;
 		};
 	};
 };
