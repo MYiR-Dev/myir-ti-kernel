@@ -146,7 +146,7 @@
 	pinctrl-0 = <&unused_pins_default  &gpio_keys_pins_default>;
 	pinctrl-1 = <&unused_pins_sleep>;
 
-    unused_pins_default: pinmux_unused_pins_default {
+    	unused_pins_default: pinmux_unused_pins_default {
 		pinctrl-single,pins = <
 			0x2c4 ( PIN_INPUT_PULLDOWN | MUX_MODE7)  // usb1_drvvbus
 			>;
@@ -267,7 +267,14 @@
 			0x108 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (D16) mii1_col.uart5_rxd */
 			0x144 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (A16) mii1_rx_dv.uart5_txd */
 		>;
-	};	
+	};
+	
+	ft5x0x_pins_default: ft5x0x_pins_default {
+		pinctrl-single,pins = <
+			0x264 ( PIN_INPUT | MUX_MODE7 ) /* (P22) spi2_d0.gpio3[22] */
+			0x268 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (P20) spi2_d1.gpio3[23] */
+		>;
+	};
 
 	dcan0_default: dcan0_default_pins {
 		pinctrl-single,pins = <
@@ -771,7 +778,18 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&i2c2_pins_default>;
 	pinctrl-1 = <&i2c2_pins_sleep>;
-	clock-frequency = <100000>;
+	clock-frequency = <400000>;
+	
+	ft0x5x_ts@38 {
+	        compatible = "ft5x06_ts";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ft5x0x_pins_default>;
+	        reg = <0x38>;
+	        tp_int = <&gpio3 22 1>;
+	        tp_resetn = <&gpio3 23 1>;
+	        polling_mode = /bits/ 8 <0>;
+	        multi_touch = /bits/ 8 <0>;
+	    };
 };
 
 &epwmss0 {
