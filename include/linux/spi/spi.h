@@ -23,12 +23,72 @@
 #include <linux/scatterlist.h>
 
 struct dma_chan;
+struct spi_master;
+struct spi_transfer;
+struct spi_flash_read_message;
 
 /*
  * INTERFACES between SPI master-side drivers and SPI infrastructure.
  * (There's no SPI slave support for Linux yet...)
  */
 extern struct bus_type spi_bus_type;
+
+/**
+ * struct spi_statistics - statistics for spi transfers
+ * @lock:          lock protecting this structure
+ *
+ * @messages:      number of spi-messages handled
+ * @transfers:     number of spi_transfers handled
+ * @errors:        number of errors during spi_transfer
+ * @timedout:      number of timeouts during spi_transfer
+ *
+ * @spi_sync:      number of times spi_sync is used
+ * @spi_sync_immediate:
+ *                 number of times spi_sync is executed immediately
+ *                 in calling context without queuing and scheduling
+ * @spi_async:     number of times spi_async is used
+ *
+ * @bytes:         number of bytes transferred to/from device
+ * @bytes_tx:      number of bytes sent to device
+ * @bytes_rx:      number of bytes received from device
+ *
+ * @transfer_bytes_histo:
+ *                 transfer bytes histogramm
+ */
+struct spi_statistics {
+	spinlock_t		lock; /* lock for the whole structure */
+
+	unsigned long		messages;
+	unsigned long		transfers;
+	unsigned long		errors;
+	unsigned long		timedout;
+
+	unsigned long		spi_sync;
+	unsigned long		spi_sync_immediate;
+	unsigned long		spi_async;
+
+	unsigned long long	bytes;
+	unsigned long long	bytes_rx;
+	unsigned long long	bytes_tx;
+
+#define SPI_STATISTICS_HISTO_SIZE 17
+	unsigned long transfer_bytes_histo[SPI_STATISTICS_HISTO_SIZE];
+};
+
+void spi_statistics_add_transfer_stats(struct spi_statistics *stats,
+				       struct spi_transfer *xfer,
+				       struct spi_master *master);
+
+#define SPI_STATISTICS_ADD_TO_FIELD(stats, field, count)	\
+	do {							\
+		unsigned long flags;				\
+		spin_lock_irqsave(&(stats)->lock, flags);	\
+		(stats)->field += count;			\
+		spin_unlock_irqrestore(&(stats)->lock, flags);	\
+	} while (0)
+
+#define SPI_STATISTICS_INCREMENT_FIELD(stats, field)	\
+	SPI_STATISTICS_ADD_TO_FIELD(stats, field, 1)
 
 /**
  * struct spi_device - Master side proxy for an SPI slave device
@@ -59,6 +119,8 @@ extern struct bus_type spi_bus_type;
  *	for driver coldplugging, and in uevents used for hotplugging
  * @cs_gpio: gpio number of the chipselect line (optional, -ENOENT when
  *	when not using a GPIO line)
+ *
+ * @statistics: statistics for the spi_device
  *
  * A @spi_device is used to interchange data between an SPI slave
  * (usually a discrete chip) and CPU memory.
@@ -97,6 +159,9 @@ struct spi_device {
 	void			*controller_data;
 	char			modalias[SPI_NAME_SIZE];
 	int			cs_gpio;	/* chip select gpio */
+
+	/* the statistics */
+	struct spi_statistics	statistics;
 
 	/*
 	 * likely need more hooks for more protocol options affecting how
@@ -190,7 +255,7 @@ static inline struct spi_driver *to_spi_driver(struct device_driver *drv)
 	return drv ? container_of(drv, struct spi_driver, driver) : NULL;
 }
 
-extern int spi_register_driver(struct spi_driver *sdrv);
+extern int __spi_register_driver(struct module *owner, struct spi_driver *sdrv);
 
 /**
  * spi_unregister_driver - reverse effect of spi_register_driver
@@ -202,6 +267,10 @@ static inline void spi_unregister_driver(struct spi_driver *sdrv)
 	if (sdrv)
 		driver_unregister(&sdrv->driver);
 }
+
+/* use a define to avoid include chaining to get THIS_MODULE */
+#define spi_register_driver(driver) \
+	__spi_register_driver(THIS_MODULE, driver)
 
 /**
  * module_spi_driver() - Helper macro for registering a SPI driver
@@ -293,9 +362,12 @@ static inline void spi_unregister_driver(struct spi_driver *sdrv)
  * @handle_err: the subsystem calls the driver to handle an error that occurs
  *		in the generic implementation of transfer_one_message().
  * @unprepare_message: undo any work done by prepare_message().
+ * @spi_flash_read: to support spi-controller hardwares that provide
+ *                  accelerated interface to read from flash devices.
  * @cs_gpios: Array of GPIOs to use as chip select lines; one per CS
  *	number. Any individual value may be -ENOENT for CS lines that
  *	are not GPIOs (driven by the SPI controller itself).
+ * @statistics: statistics for the spi_master
  * @dma_tx: DMA transmit channel
  * @dma_rx: DMA receive channel
  * @dummy_rx: dummy receive buffer for full-duplex devices
@@ -438,6 +510,8 @@ struct spi_master {
 			       struct spi_message *message);
 	int (*unprepare_message)(struct spi_master *master,
 				 struct spi_message *message);
+	int (*spi_flash_read)(struct  spi_device *spi,
+			      struct spi_flash_read_message *msg);
 
 	/*
 	 * These hooks are for drivers that use a generic implementation
@@ -451,6 +525,9 @@ struct spi_master {
 
 	/* gpio chip select */
 	int			*cs_gpios;
+
+	/* statistics */
+	struct spi_statistics	statistics;
 
 	/* DMA channels for use with core dmaengine helpers */
 	struct dma_chan		*dma_tx;
@@ -640,8 +717,6 @@ struct spi_transfer {
  * @actual_length: the total number of bytes that were transferred in all
  *	successful segments
  * @status: zero for success, else negative errno
- * @use_mmap_mode: Indicate to spi master to perform memory mapped
- *	read if possible.
  * @queue: for use by whichever driver currently owns the message
  * @state: for use by whichever driver currently owns the message
  *
@@ -683,7 +758,6 @@ struct spi_message {
 	unsigned		frame_length;
 	unsigned		actual_length;
 	int			status;
-	bool			use_mmap_mode;
 
 	/* for optional use by whatever driver currently owns the
 	 * spi_message ...  between calls to spi_async and then later
@@ -782,8 +856,10 @@ extern int spi_bus_unlock(struct spi_master *master);
  * @len: data buffer size
  * Context: can sleep
  *
- * This writes the buffer and returns zero or a negative error code.
+ * This function writes the buffer @buf.
  * Callable only from contexts that can sleep.
+ *
+ * Return: zero on success, else a negative error code.
  */
 static inline int
 spi_write(struct spi_device *spi, const void *buf, size_t len)
@@ -806,8 +882,10 @@ spi_write(struct spi_device *spi, const void *buf, size_t len)
  * @len: data buffer size
  * Context: can sleep
  *
- * This reads the buffer and returns zero or a negative error code.
+ * This function reads the buffer @buf.
  * Callable only from contexts that can sleep.
+ *
+ * Return: zero on success, else a negative error code.
  */
 static inline int
 spi_read(struct spi_device *spi, void *buf, size_t len)
@@ -834,7 +912,7 @@ spi_read(struct spi_device *spi, void *buf, size_t len)
  *
  * For more specific semantics see spi_sync().
  *
- * It returns zero on success, else a negative error code.
+ * Return: Return: zero on success, else a negative error code.
  */
 static inline int
 spi_sync_transfer(struct spi_device *spi, struct spi_transfer *xfers,
@@ -858,9 +936,10 @@ extern int spi_write_then_read(struct spi_device *spi,
  * @cmd: command to be written before data is read back
  * Context: can sleep
  *
- * This returns the (unsigned) eight bit number returned by the
- * device, or else a negative error code.  Callable only from
- * contexts that can sleep.
+ * Callable only from contexts that can sleep.
+ *
+ * Return: the (unsigned) eight bit number returned by the
+ * device, or else a negative error code.
  */
 static inline ssize_t spi_w8r8(struct spi_device *spi, u8 cmd)
 {
@@ -879,12 +958,13 @@ static inline ssize_t spi_w8r8(struct spi_device *spi, u8 cmd)
  * @cmd: command to be written before data is read back
  * Context: can sleep
  *
- * This returns the (unsigned) sixteen bit number returned by the
- * device, or else a negative error code.  Callable only from
- * contexts that can sleep.
- *
  * The number is returned in wire-order, which is at least sometimes
  * big-endian.
+ *
+ * Callable only from contexts that can sleep.
+ *
+ * Return: the (unsigned) sixteen bit number returned by the
+ * device, or else a negative error code.
  */
 static inline ssize_t spi_w8r16(struct spi_device *spi, u8 cmd)
 {
@@ -903,13 +983,13 @@ static inline ssize_t spi_w8r16(struct spi_device *spi, u8 cmd)
  * @cmd: command to be written before data is read back
  * Context: can sleep
  *
- * This returns the (unsigned) sixteen bit number returned by the device in cpu
- * endianness, or else a negative error code. Callable only from contexts that
- * can sleep.
- *
  * This function is similar to spi_w8r16, with the exception that it will
  * convert the read 16 bit data word from big-endian to native endianness.
  *
+ * Callable only from contexts that can sleep.
+ *
+ * Return: the (unsigned) sixteen bit number returned by the device in cpu
+ * endianness, or else a negative error code.
  */
 static inline ssize_t spi_w8r16be(struct spi_device *spi, u8 cmd)
 
@@ -923,6 +1003,46 @@ static inline ssize_t spi_w8r16be(struct spi_device *spi, u8 cmd)
 
 	return be16_to_cpu(result);
 }
+
+/**
+ * struct spi_flash_read_message - flash specific information for
+ * spi-masters that provide accelerated flash read interfaces
+ * @buf: buffer to read data
+ * @from: offset within the flash from where data is to be read
+ * @len: length of data to be read
+ * @retlen: actual length of data read
+ * @read_opcode: read_opcode to be used to communicate with flash
+ * @addr_width: number of address bytes
+ * @dummy_bytes: number of dummy bytes
+ * @opcode_nbits: number of lines to send opcode
+ * @addr_nbits: number of lines to send address
+ * @data_nbits: number of lines for data
+ * @sg: Scatterlist for receive, currently not for client use
+ * @cur_msg_mapped: message has been mapped for DMA
+ */
+struct spi_flash_read_message {
+	void *buf;
+	loff_t from;
+	size_t len;
+	size_t retlen;
+	u8 read_opcode;
+	u8 addr_width;
+	u8 dummy_bytes;
+	u8 opcode_nbits;
+	u8 addr_nbits;
+	u8 data_nbits;
+	struct sg_table sg;
+	bool cur_msg_mapped;
+};
+
+/* SPI core interface for flash read support */
+static inline bool spi_flash_read_supported(struct spi_device *spi)
+{
+	return spi->master->spi_flash_read ? true : false;
+}
+
+int spi_flash_read(struct spi_device *spi,
+		   struct spi_flash_read_message *msg);
 
 /*---------------------------------------------------------------------------*/
 

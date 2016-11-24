@@ -575,6 +575,33 @@ struct dma_tx_state {
 	u32 residue;
 };
 
+
+/**
+ * struct dma_slave_map - associates slave device and it's slave channel with
+ * parameter to be used by a filter function
+ * @devname: name of the device
+ * @slave: slave channel name
+ * @param: opaque parameter to pass to struct dma_filter.fn
+ */
+struct dma_slave_map {
+	const char *devname;
+	const char *slave;
+	void *param;
+};
+
+/**
+ * struct dma_filter - information for slave device/channel to filter_fn/param
+ * mapping
+ * @fn: filter function callback
+ * @mapcnt: number of slave device/channel in the map
+ * @map: array of channel to filter mapping data
+ */
+struct dma_filter {
+	dma_filter_fn fn;
+	int mapcnt;
+	const struct dma_slave_map *map;
+};
+
 /**
  * struct dma_device - info on the entity supplying DMA services
  * @chancnt: how many DMA channels are supported
@@ -633,6 +660,7 @@ struct dma_device {
 	unsigned int privatecnt;
 	struct list_head channels;
 	struct list_head global_node;
+	struct dma_filter filter;
 	dma_cap_mask_t  cap_mask;
 	unsigned short max_xor;
 	unsigned short max_pq;
@@ -1145,6 +1173,10 @@ struct dma_chan *__dma_request_channel(const dma_cap_mask_t *mask,
 struct dma_chan *dma_request_slave_channel_reason(struct device *dev,
 						  const char *name);
 struct dma_chan *dma_request_slave_channel(struct device *dev, const char *name);
+
+struct dma_chan *dma_request_chan(struct device *dev, const char *name);
+struct dma_chan *dma_request_chan_by_mask(const dma_cap_mask_t *mask);
+
 void dma_release_channel(struct dma_chan *chan);
 int dma_get_slave_caps(struct dma_chan *chan, struct dma_slave_caps *caps);
 #else
@@ -1177,6 +1209,10 @@ static inline struct dma_chan *dma_request_slave_channel(struct device *dev,
 							 const char *name)
 {
 	return NULL;
+static inline struct dma_chan *dma_request_chan_by_mask(
+						const dma_cap_mask_t *mask)
+{
+	return ERR_PTR(-ENODEV);
 }
 static inline void dma_release_channel(struct dma_chan *chan)
 {
