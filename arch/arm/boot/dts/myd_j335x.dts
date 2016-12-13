@@ -177,7 +177,14 @@
 	watchdog_pins: pinmux_watchdog_pins{
 		pinctrl-single,pins = <0x1E8 (PIN_OUTPUT_PULLDOWN | MUX_MODE7)>;
 	};
-		
+
+        ft5x0x_pins_default: ft5x0x_pins_default {
+                pinctrl-single,pins = <
+			0x1b4 ( PIN_INPUT_PULLUP | MUX_MODE7 ) /* (D14) xdma_event_intr1.gpio0[20] */
+                        0x198 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (D12) mcasp0_axr0.gpio3[16] */
+                >;
+        };
+
 	i2c0_pins: pinmux_i2c0_pins {
 		pinctrl-single,pins = <
 			0x188 (PIN_INPUT_PULLUP | MUX_MODE0)	/* i2c0_sda.i2c0_sda */
@@ -625,6 +632,18 @@
 		VDDA-supply = <&vdd_3v3b>;
 		VDDIO-supply = <&vdd_3v3b>;
 	};
+
+        ft5x0x_ts:ft5x0x_ts@0x38 {
+                compatible = "ft5x06_ts";
+                pinctrl-names = "default";
+                pinctrl-0 = <&ft5x0x_pins_default>;
+                reg = <0x38>;
+                tp_int = <&gpio0 20 1>;
+                tp_resetn = <&gpio3 16 1>;
+                polling_mode = /bits/ 8 <0>;
+                multi_touch = /bits/ 8 <0>;
+            };
+
 };
 
 &usb {
@@ -674,6 +693,7 @@
                   gpio-controller;
                  #gpio-cells = <2>;
          };
+
 
 };
 
@@ -914,7 +934,7 @@
 		ti,x-plate-resistance = <200>;
 		ti,coordinate-readouts = <5>;
 		ti,wire-config = <0x00 0x11 0x22 0x33>;
-		ti,charge-delay = <0x400>;
+		ti,charge-delay = <0x800>;
 	};
 
 	adc {
