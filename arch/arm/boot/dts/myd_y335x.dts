@@ -213,7 +213,7 @@
 
         ft5x0x_pins_default: ft5x0x_pins_default {
                 pinctrl-single,pins = <
-			0x160 ( PIN_INPUT | MUX_MODE7 ) /* (C15) spi0_cs1.gpio0[6] */
+			0x160 ( PIN_INPUT_PULLUP | MUX_MODE7 ) /* (C15) spi0_cs1.gpio0[6] */
 			0x198 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (D12) mcasp0_axr0.gpio3[16] */
                 >;
         };
