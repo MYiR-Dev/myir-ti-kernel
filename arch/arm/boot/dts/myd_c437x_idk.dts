@@ -175,6 +175,7 @@
 	};
 	gpio3_pins: gpio3_pins_default {
 		pinctrl-single,pins = <
+		0x2a4 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (N23) EMU1.gpio3[7] */
 		0x2a8 ( PIN_OUTPUT | MUX_MODE7 ) /* (T24) EMU1.gpio3[8] */
 		>;
 	};
