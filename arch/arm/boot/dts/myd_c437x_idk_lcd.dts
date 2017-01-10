@@ -1019,7 +1019,7 @@
 };
 
 &sgx {
-	status = "okay";
+	status = "disabled";
 };
 
 &dss {
