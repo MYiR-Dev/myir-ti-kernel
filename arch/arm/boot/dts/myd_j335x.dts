@@ -232,19 +232,19 @@
         };
 
 
-//	uart2_pins_default: pinmux_uart2_pins_default {
-//		pinctrl-single,pins = <
-//			0x10c ( PIN_INPUT | MUX_MODE6 ) /* (H17) gmii1_crs.uart2_rxd */
-//			0x110 ( PIN_OUTPUT | MUX_MODE6 ) /* (J15) gmii1_rxer.uart2_txd */
-//		>;
-//	};
-//
-//	uart2_pins_sleep: pinmux_uart2_pins_sleep {
-//		pinctrl-single,pins = <
-//			0x10C (PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x110 (PIN_INPUT_PULLDOWN | MUX_MODE7)
-//		>;
-//	};
+		uart2_pins_default: pinmux_uart2_pins_default {
+			pinctrl-single,pins = <
+				0x10c ( PIN_INPUT | MUX_MODE6 ) /* (H17) gmii1_crs.uart2_rxd */
+				0x110 ( PIN_OUTPUT | MUX_MODE6 ) /* (J15) gmii1_rxer.uart2_txd */
+			>;
+		};
+	
+		uart2_pins_sleep: pinmux_uart2_pins_sleep {
+			pinctrl-single,pins = <
+				0x10C (PIN_INPUT_PULLDOWN | MUX_MODE7)
+				0x110 (PIN_INPUT_PULLDOWN | MUX_MODE7)
+		>;
+	};
     	uart3_pins_default: pinmux_uart3_pins_default {
         pinctrl-single,pins = <
 			0x160 ( PIN_INPUT_PULLUP | MUX_MODE1 ) /* (C15) spi0_cs1.uart3_rxd */
@@ -275,8 +275,8 @@
         pinctrl-single,pins = <
 			0x108 ( PIN_INPUT_PULLUP | MUX_MODE3 ) /* (H16) gmii1_col.uart5_rxd */
 			0x144 ( PIN_OUTPUT_PULLDOWN | MUX_MODE3 ) /* (H18) rmii1_refclk.uart5_txd */
-			0x10c ( PIN_INPUT_PULLUP | MUX_MODE5 ) /* (H17) gmii1_crs.uart5_ctsn */
-			0x110 ( PIN_OUTPUT_PULLDOWN | MUX_MODE5 ) /* (J15) gmii1_rxer.uart5_rtsn */
+			//0x10c ( PIN_INPUT_PULLUP | MUX_MODE5 ) /* (H17) gmii1_crs.uart5_ctsn */
+			//0x110 ( PIN_OUTPUT_PULLDOWN | MUX_MODE5 ) /* (J15) gmii1_rxer.uart5_rtsn */
                 >;
         };
 
@@ -284,8 +284,8 @@
 		pinctrl-single,pins = <
 			0x108 ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (H16) gmii1_col.uart5_rxd */
 			0x144 ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (H18) rmii1_refclk.uart5_txd */
-			0x10c ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (H17) gmii1_crs.uart5_ctsn */
-			0x110 ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (J15) gmii1_rxer.uart5_rtsn */
+			//0x10c ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (H17) gmii1_crs.uart5_ctsn */
+			//0x110 ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (J15) gmii1_rxer.uart5_rtsn */
                 >;
         };	
         
@@ -583,12 +583,12 @@
 	status = "okay";
 };
 
-//&uart2 {
-//	pinctrl-names = "default", "sleep";
-//	pinctrl-0 = <&uart2_pins_default>;
-//	pinctrl-1 = <&uart2_pins_sleep>;
-//	status = "okay";
-//};
+&uart2 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart2_pins_default>;
+	pinctrl-1 = <&uart2_pins_sleep>;
+	status = "okay";
+};
 &uart3 {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart3_pins_default>;
@@ -599,7 +599,7 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart4_pins_default>;
 	pinctrl-1 = <&uart4_pins_sleep>;
-	status = "okay";
+	status = "disabled";
 };
 &uart5 {
 	pinctrl-names = "default", "sleep";
@@ -918,13 +918,13 @@
 &cpsw_emac0 {
 	phy_id = <&davinci_mdio>, <4>;
 	phy-mode = "rgmii-txid";
-	dual_emac_res_vlan=<0>;
+//	dual_emac_res_vlan=<0>;
 };
 
 &cpsw_emac1 {
 	phy_id = <&davinci_mdio>, <6>;
 	phy-mode = "rgmii-txid";
-	dual_emac_res_vlan=<1>;
+//	dual_emac_res_vlan=<1>;
 };
 
 &tscadc {
@@ -981,6 +981,10 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&dcan1_pins_default>;
+};
+
+&wkup_m3_ipc {
+	ti,scale-data-fw = "am335x-evm-scale-data.bin";
 };
 
 &rtc {
