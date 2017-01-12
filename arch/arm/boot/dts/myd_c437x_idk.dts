@@ -622,7 +622,7 @@
 	pinctrl-1 = <&uart5_pins_sleep>;
 	rts-gpio = <&gpio3 2 GPIO_ACTIVE_HIGH>;
 	rs485-rts-active-high;
-	rs485-rx-during-tx;
+//	rs485-rx-during-tx;
 	rs485-rts-delay = <1 1>;
 	linux,rs485-enabled-at-boot-time;
 };
