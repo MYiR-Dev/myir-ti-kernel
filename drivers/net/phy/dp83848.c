@@ -20,6 +20,46 @@
 #define DP83848C_PHY_ID			0x20005c90
 #define DP83848I_PHY_ID			0x20005ca0
 #define TLK10X_PHY_ID			0x2000a210
+/**
+* @def TLKPHY_REGCR_REG
+*      Value reg for accessing extended registers
+*/
+#define TLKPHY_REGCR_REG  0x000D
+/**
+* @def TLKPHY_ADDR_REG
+*      ADDR reg for accessing extended registers
+*/
+#define TLKPHY_ADDR_REG   0x000E
+#define TLKPHY_PHYCR_REG                          (0x19)
+#define TLKPHY_LEDCR_REG                          (0x18)
+#define TLKPHY_PHYSCR_REG                         (0x11)
+#define TLKPHY_PHYSTS_REG                         (0x10)
+
+
+#define TLKPHY_CR1_REG                            (0x9)
+#define TLKPHY_CR2_REG                            (0xA)
+#define TLKPHY_CR3_REG                            (0xB)
+
+/**
+* @def EXT_REG_ADDRESS_ACCESS
+*      Extended reg address access value
+*/
+#define EXT_REG_ADDRESS_ACCESS 0x001F
+/**
+* @def EXT_REG_DATA_NORMAL_ACCESS
+*      Extended reg data access value
+*/
+#define EXT_REG_DATA_NORMAL_ACCESS 0x401F
+
+#define TLK105_EXT_MLEDCR_REG                     (0x0025)
+#define EXT_REG_DATA_NORMAL_ACCESS 0x401F
+
+/**
+* @def EXT_REG_ADDRESS_ACCESS
+*      Extended reg address access value
+*/
+#define EXT_REG_ADDRESS_ACCESS 0x001F
+
 
 /* Registers */
 #define DP83848_MICR			0x11 /* MII Interrupt Control Register */
@@ -74,6 +114,46 @@ static int dp83848_config_intr(struct phy_device *phydev)
 	return phy_write(phydev, DP83848_MICR, control);
 }
 
+static int tlk105_config_init(struct phy_device *phydev)
+{
+        int ret;
+	unsigned short phyregval = 0;
+
+        ret = genphy_config_init(phydev);
+        if (ret < 0)
+                return ret;
+
+        ret = phy_write(phydev, TLKPHY_REGCR_REG,
+                        EXT_REG_ADDRESS_ACCESS);
+        if (ret)
+                return ret;
+        ret = phy_write(phydev, TLKPHY_ADDR_REG,
+                        TLK105_EXT_MLEDCR_REG);
+        if (ret)
+                return ret;
+        ret = phy_write(phydev, TLKPHY_REGCR_REG,
+                        EXT_REG_DATA_NORMAL_ACCESS);
+        if (ret)
+                return ret;
+	phyregval = phy_read(phydev, TLKPHY_ADDR_REG);
+	phyregval |= ((1<<10) | (5<<3)|0);
+	phyregval &= ~(1<<9);
+
+        ret = phy_write(phydev, TLKPHY_ADDR_REG,
+                        phyregval);
+        if (ret)
+                return ret;
+
+	phyregval = phy_read(phydev, TLKPHY_PHYCR_REG);
+	phyregval &= ~(1<<5);
+        ret = phy_write(phydev, TLKPHY_PHYCR_REG,
+                        phyregval);
+        if (ret)
+                return ret;
+
+        return 0;
+}
+
 static struct mdio_device_id __maybe_unused dp83848_tbl[] = {
 	{ DP83848C_PHY_ID, 0xfffffff0 },
 	{ DP83848I_PHY_ID, 0xfffffff0 },
@@ -91,7 +171,7 @@ MODULE_DEVICE_TABLE(mdio, dp83848_tbl);
 		.flags		= PHY_HAS_INTERRUPT,		\
 								\
 		.soft_reset	= genphy_soft_reset,		\
-		.config_init	= genphy_config_init,		\
+		.config_init	= tlk105_config_init,		\
 		.suspend	= genphy_suspend,		\
 		.resume		= genphy_resume,		\
 		.config_aneg	= genphy_config_aneg,		\
