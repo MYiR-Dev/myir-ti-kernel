@@ -311,11 +311,13 @@ static void serial_omap_stop_tx(struct uart_port *port)
 			serial_out(up, UART_OMAP_SCR, up->scr);
 			res = (port->rs485.flags & SER_RS485_RTS_AFTER_SEND) ?
 				1 : 0;
+			if(up->rts_gpio != -EINVAL){
 			if (gpio_get_value(up->rts_gpio) != res) {
 				if (port->rs485.delay_rts_after_send > 0)
 					mdelay(
 					port->rs485.delay_rts_after_send);
 				gpio_set_value(up->rts_gpio, res);
+				}
 			}
 		} else {
 			/* We're asked to stop, but there's still stuff in the
@@ -420,11 +422,13 @@ static void serial_omap_start_tx(struct uart_port *port)
 
 		/* if rts not already enabled */
 		res = (port->rs485.flags & SER_RS485_RTS_ON_SEND) ? 1 : 0;
+		if(up->rts_gpio != -EINVAL){
 		if (gpio_get_value(up->rts_gpio) != res) {
 			gpio_set_value(up->rts_gpio, res);
 			if (port->rs485.delay_rts_before_send > 0)
 				mdelay(port->rs485.delay_rts_before_send);
 		}
+	    }
 	}
 
 	if ((port->rs485.flags & SER_RS485_ENABLED) &&
@@ -1361,6 +1365,7 @@ serial_omap_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf)
 	 * Just as a precaution, only allow rs485
 	 * to be enabled if the gpio pin is valid
 	 */
+	if(up->rts_gpio != -EINVAL){
 	if (gpio_is_valid(up->rts_gpio)) {
 		/* enable / disable rts */
 		val = (port->rs485.flags & SER_RS485_ENABLED) ?
@@ -1369,7 +1374,7 @@ serial_omap_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf)
 		gpio_set_value(up->rts_gpio, val);
 	} else
 		port->rs485.flags &= ~SER_RS485_ENABLED;
-
+	}
 	/* Enable interrupts */
 	up->ier = mode;
 	serial_out(up, UART_IER, up->ier);
