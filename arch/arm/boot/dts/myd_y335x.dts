@@ -263,8 +263,8 @@
 
 	uart2_pins_default: pinmux_uart2_pins_default {
 		pinctrl-single,pins = <
-			0x10c ( PIN_INPUT | MUX_MODE6 ) /* (H17) gmii1_crs.uart2_rxd */
-			0x110 ( PIN_OUTPUT | MUX_MODE6 ) /* (J15) gmii1_rxer.uart2_txd */
+			0x10c ( PIN_INPUT_PULLUP | MUX_MODE6 ) /* (H17) gmii1_crs.uart2_rxd */
+			0x110 ( PIN_OUTPUT_PULLDOWN | MUX_MODE6 ) /* (J15) gmii1_rxer.uart2_txd */
 		>;
 	};
 
