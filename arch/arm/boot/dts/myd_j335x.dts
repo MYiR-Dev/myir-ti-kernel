@@ -857,7 +857,22 @@
 	 * by the hardware problems. (Tip: double-check by performing a current
 	 * measurement after shutdown: it should be less than 1 mA.)
 	 */
+	interrupts = <7>; /* NMI */
+	interrupt-parent = <&intc>;
+
 	ti,pmic-shutdown-controller;
+
+	charger {
+		interrupts = <0>, <1>;
+		interrupt-names = "USB", "AC";
+		status = "okay";
+	};
+
+	pwrbutton {
+		interrupts = <2>;
+		interrupt-names = "PB";
+		status = "okay";
+	};
 
 	regulators {
 		dcdc1_reg: regulator@0 {
