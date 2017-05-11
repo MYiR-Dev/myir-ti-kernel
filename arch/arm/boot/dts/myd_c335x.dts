@@ -860,5 +860,5 @@
 };
 
 &sgx {
-	status = "okay";
+	status = "disabled";
 };
