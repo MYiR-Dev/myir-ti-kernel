@@ -48,12 +48,12 @@
 		#size-cells = <0>;
 		autorepeat;
 
-//		switch@1 {
-//			label = "sw3";
-//			linux,code = <102>;
-//			gpios = <&gpio1 28 GPIO_ACTIVE_LOW>;
-//			gpio-key,wakeup;
-//		};
+		switch@1 {
+			label = "sw3";
+			linux,code = <102>;
+			gpios = <&gpio1 28 GPIO_ACTIVE_LOW>;
+			gpio-key,wakeup;
+		};
 		
 		switch@2 {
 			label = "sw4";
@@ -68,12 +68,12 @@
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&leds_pins>;
-//		led@0 {
-//			label = "myc_d36";
-//			gpios = <&gpio5 11 GPIO_ACTIVE_HIGH>;	/* Bank 5, pin 11 */
-//			linux,default-trigger = "cpu0";
-//			default-state = "off";
-//		};
+		led@0 {
+			label = "myc_d36";
+			gpios = <&gpio5 11 GPIO_ACTIVE_HIGH>;	/* Bank 5, pin 11 */
+			linux,default-trigger = "cpu0";
+			default-state = "off";
+		};
 
 		led@1 {
 			label = "myd_d34";
@@ -187,15 +187,15 @@
 
 	i2c1_pins_default: i2c1_pins_default {
 		pinctrl-single,pins = <
-			0x15c (PIN_INPUT_PULLUP | SLEWCTRL_FAST | MUX_MODE2)  /* spi0_cs0.i2c1_scl */
-			0x158 (PIN_INPUT_PULLUP | SLEWCTRL_FAST | MUX_MODE2)  /* spi0_d1.i2c1_sda  */
+			0x240 ( PIN_INPUT_PULLUP | SLEWCTRL_FAST | MUX_MODE1 ) /* (G20) gpio5_10.I2C1_SCL */
+			0x248 ( PIN_INPUT_PULLUP | SLEWCTRL_FAST | MUX_MODE1 ) /* (E25) gpio5_12.I2C1_SDA */
 		>;
 	};
 
 	i2c1_pins_sleep: i2c1_pins_sleep {
 		pinctrl-single,pins = <
-			0x15c (PIN_INPUT_PULLUP | MUX_MODE7)
-			0x158 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x240 (PIN_INPUT_PULLUP | MUX_MODE7)
+			0x248 (PIN_INPUT_PULLUP | MUX_MODE7)
 		>;
 	};
 
@@ -618,6 +618,13 @@
 			0x174 (PIN_INPUT | PULL_DISABLE | SLEWCTRL_FAST | DS0_PULL_UP_DOWN_EN | MUX_MODE0) /* uart0_txd.uart0_txd */
 		>;
 	};
+
+	gpio3_pins: gpio3_pins_default {
+		pinctrl-single,pins = <
+		0x2a4 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (N23) EMU1.gpio3[7] */
+		0x2a8 ( PIN_OUTPUT | MUX_MODE7 ) /* (T24) EMU1.gpio3[8] */
+		>;
+	};
 	uart0_pins_sleep: uart0_pins_sleep {
 		pinctrl-single,pins = <
 			0x168 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
@@ -809,8 +816,6 @@
         ov2659@30 {
 		compatible = "ovti,ov2659";
 		reg = <0x30>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&clkout_pins>;
 
 		clocks = <&clkout2_mux_ck>;
 		clock-names = "xvclk";
@@ -865,8 +870,6 @@
 	ov2659@30 {
 		compatible = "ovti,ov2659";
 		reg = <0x30>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&clkout_pins>;
 
 		clocks = <&clkout2_mux_ck>;
 		clock-names = "xvclk";
@@ -899,6 +902,35 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&ecap0_pins_default>;
 	pinctrl-1 = <&ecap0_pins_sleep>;
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&gpio2 {
+	status = "okay";
+};
+
+&gpio3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&gpio3_pins>;
+	status = "okay";
+
+	p8 {
+		gpio-hog;
+		gpios = <8 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "EMMC_RST";
+	};
+};
+
+&gpio5 {
+	status = "okay";
 };
 
 &mmc1 {
@@ -1130,7 +1162,7 @@
 
 	port {
 		vpfe0_ep: endpoint {
-			remote-endpoint = <&ov2659_1>;
+			remote-endpoint = <&ov2659_0>;
 			ti,am437x-vpfe-interface = <0>;
 			bus-width = <8>;
 			hsync-active = <0>;
@@ -1147,7 +1179,7 @@
 
 	port {
 		vpfe1_ep: endpoint {
-			remote-endpoint = <&ov2659_0>;
+			remote-endpoint = <&ov2659_1>;
 			ti,am437x-vpfe-interface = <0>;
 			bus-width = <8>;
 			hsync-active = <0>;
