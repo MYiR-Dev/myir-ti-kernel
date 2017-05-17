@@ -1392,7 +1392,13 @@ static int ov2659_probe(struct i2c_client *client,
 
 	clk = devm_clk_get(&client->dev, "xvclk");
 	if (IS_ERR(clk))
+	{	
+		dev_err(&client->dev, "couldn't get clk for ov2659\n");
 		return PTR_ERR(clk);
+	}
+	else{
+		clk_prepare_enable(clk);
+	}
 
 	ov2659->xvclk_frequency = clk_get_rate(clk);
 	if (ov2659->xvclk_frequency < 6000000 ||

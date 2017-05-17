@@ -79,6 +79,7 @@ static struct ti_dt_clk am43xx_clks[] = {
 	DT_CLK(NULL, "gpio3_dbclk", "gpio3_dbclk"),
 	DT_CLK(NULL, "gpio4_dbclk", "gpio4_dbclk"),
 	DT_CLK(NULL, "gpio5_dbclk", "gpio5_dbclk"),
+	DT_CLK(NULL, "clkout2_ck", "clkout2_ck"),
 	DT_CLK(NULL, "mmc_clk", "mmc_clk"),
 	DT_CLK(NULL, "gfx_fclk_clksel_ck", "gfx_fclk_clksel_ck"),
 	DT_CLK(NULL, "gfx_fck_div_ck", "gfx_fck_div_ck"),

@@ -127,15 +127,14 @@
 	sound0: sound@0 {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "MYD-C437X-EVM";
-		simple-audio-card,widgets =
-			"Headphone", "Headphone Jack",
-			"Line", "Line In";
+//		simple-audio-card,widgets =
+//			"Headphone", "Headphone Jack",
+//			"Line", "Line In";
 		simple-audio-card,routing =
-			"Headphone Jack",	"HPLOUT",
-			"Headphone Jack",	"HPROUT",
-			"LINE1L",		"Line In",
-			"LINE1R",		"Line In";
-		simple-audio-card,format = "dsp_b";
+			"MIC_IN", "Mic Jack",
+			"Mic Jack", "Mic Bias",
+			"Headphone Jack", "HP_OUT";
+		simple-audio-card,format = "i2s";
 		simple-audio-card,bitclock-master = <&sound0_master>;
 		simple-audio-card,frame-master = <&sound0_master>;
 		simple-audio-card,bitclock-inversion;
@@ -146,7 +145,7 @@
 		};
 
 		sound0_master: simple-audio-card,codec {
-			sound-dai = <&tlv320aic3106>;
+			sound-dai = <&sgtl5000>;
 			system-clock-frequency = <12000000>;
 		};
 	};
@@ -166,7 +165,7 @@
 
         clkout_pins: pinmux_clkout_pins {
                 pinctrl-single,pins = <
-                        0x274 (PIN_OUTPUT_PULLDOWN | MUX_MODE3)         /* xdma_event_intr1.clkout2 */
+               0x274 (PIN_OUTPUT_PULLUP | MUX_MODE3)    /* xdma_event_intr1.clkout2 */
 			/* 0x270 (PIN_OUTPUT_PULLUP | MUX_MODE3) */ /* xdma_event_intr0.clkout1 mode 3*/
                 >;
         };
@@ -274,6 +273,20 @@
 	pixcir_ts_pins_sleep: pixcir_ts_pins_sleep {
 		pinctrl-single,pins = <
 			0x264 (PIN_INPUT | PULL_DISABLE | MUX_MODE7)  /* spi2_d0.gpio3_22 */
+		>;
+	};
+	
+	ft5x0x_pins_default: ft5x0x_pins_default {
+		pinctrl-single,pins = <
+			0x264 ( PIN_INPUT | MUX_MODE7 ) /* (P22) spi2_d0.gpio3[22] */
+			0x268 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (P20) spi2_d1.gpio3[23] */
+		>;
+	};
+
+	ft5x0x_pins_sleep: ft5x0x_pins_sleep {
+		pinctrl-single,pins = <
+			0x264 ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (P22) spi2_d0.gpio3[22] */
+			0x268 ( PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (P20) spi2_d1.gpio3[23] */
 		>;
 	};
 
@@ -817,10 +830,8 @@
 		compatible = "ovti,ov2659";
 		reg = <0x30>;
 
-		clocks = <&clkout2_mux_ck>;
+		clocks = <&clkout2_ck>;
 		clock-names = "xvclk";
-		assigned-clocks = <&clkout2_mux_ck>;
-		assigned-clock-parents = <&clkout2_osc_div_ck>;
 
 		port {
 			ov2659_0: endpoint {
@@ -837,6 +848,7 @@
 	pinctrl-0 = <&i2c1_pins_default>;
 	pinctrl-1 = <&i2c1_pins_sleep>;
 	pixcir_ts@5c {
+		status="disabled";
 		compatible = "pixcir,pixcir_tangoc";
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&pixcir_ts_pins_default>;
@@ -853,12 +865,24 @@
 		touchscreen-size-x = <1024>;
 		touchscreen-size-y = <600>;
 	};
+	
+	ft0x5x_ts@38 {
+	        compatible = "ft5x06_ts";
+		pinctrl-names = "default","sleep";
+		pinctrl-0 = <&ft5x0x_pins_default>;
+		pinctrl-1 = <&ft5x0x_pins_sleep>;
+	        reg = <0x38>;
+	        tp_int = <&gpio3 22 1>;
+	        tp_resetn = <&gpio3 23 1>;
+	        polling_mode = /bits/ 8 <0>;
+	        multi_touch = /bits/ 8 <0>;
+	    };
 
 	tlv320aic3106: tlv320aic3106@1b {
 		#sound-dai-cells = <0>;
 		compatible = "ti,tlv320aic3106";
 		reg = <0x1b>;
-		status = "okay";
+		status = "disabled";
 
 		/* Regulators */
 		IOVDD-supply = <&dcdc4>; /* V3_3D -> <tps63031> EN: V1_8D -> VBAT */
@@ -867,15 +891,27 @@
 		DVDD-supply = <&ldo1>; /* V1_8D -> LDO1 */
 	};
 
+	sgtl5000: sgtl5000@0a {
+		#sound-dai-cells = <0>;
+		compatible = "fsl,sgtl5000";
+		clocks=<&mcasp1_fck>;
+		reg =<0x0a>;
+        	micbias-resistor-k-ohms = <4>;
+        	micbias-voltage-m-volts = <2250>;
+		status = "okay";
+
+		/* Regulators */
+		VDDA-supply = <&dcdc4>;
+		VDDIO-supply = <&dcdc4>;
+	};
+
+
 	ov2659@30 {
 		compatible = "ovti,ov2659";
 		reg = <0x30>;
 
-		clocks = <&clkout2_mux_ck>;
+		clocks = <&clkout2_ck>;
 		clock-names = "xvclk";
-		assigned-clocks = <&clkout2_mux_ck>;
-		assigned-clock-parents = <&clkout2_osc_div_ck>;
-
 		port {
 			ov2659_1: endpoint {
 				remote-endpoint = <&vpfe1_ep>;
@@ -885,15 +921,38 @@
 	};
 };
 
+&clkout2_ck {
+	status = "okay";
+};
+
+&clkout2_src_mux_ck {
+	status="okay";
+	assigned-clocks = <&clkout2_src_mux_ck>;
+	assigned-clock-parents = <&dpll_per_m2_ck>;
+};
+
+&clkout2_src_post_div_ck {
+	status = "okay";
+	assigned-clocks = <&clkout2_src_post_div_ck>;
+	assigned-clock-rates = <24000000>;
+};
+	
 &epwmss0 {
 	status = "okay";
 };
 
 &tscadc {
 	status = "okay";
+	tsc {
+		ti,wires = <4>;
+		ti,x-plate-resistance = <200>;
+		ti,coordinate-readouts = <5>;
+		ti,wire-config = <0x00 0x11 0x22 0x33>;
+		ti,charge-delay = <0x400>;
+	};
 
 	adc {
-		ti,adc-channels = <0 1 2 3 4 5 6 7>;
+		ti,adc-channels = <0 1 2 3>;
 	};
 };
 
@@ -1200,7 +1259,7 @@
 	tdm-slots = <2>;
 	/* 4 serializers */
 	serial-dir = <  /* 0: INACTIVE, 1: TX, 2: RX */
-		0 0 1 2
+		1 2 0 0
 	>;
 	tx-num-evt = <32>;
 	rx-num-evt = <32>;
