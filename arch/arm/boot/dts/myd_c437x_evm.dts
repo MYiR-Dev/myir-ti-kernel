@@ -412,14 +412,14 @@
 
 	dss_pinctrl_default: dss_pinctrl_default {
 		pinctrl-single,pins = <
-//			0x020 (PIN_OUTPUT_PULLUP | MUX_MODE1) /*gpmc ad 8 -> DSS DATA 23 */
-//			0x024 (PIN_OUTPUT_PULLUP | MUX_MODE1)
-//			0x028 (PIN_OUTPUT_PULLUP | MUX_MODE1)
-//			0x02c (PIN_OUTPUT_PULLUP | MUX_MODE1)
-//			0x030 (PIN_OUTPUT_PULLUP | MUX_MODE1)
-//			0x034 (PIN_OUTPUT_PULLUP | MUX_MODE1)
-//			0x038 (PIN_OUTPUT_PULLUP | MUX_MODE1)
-//			0x03c (PIN_OUTPUT_PULLUP | MUX_MODE1) /*gpmc ad 15 -> DSS DATA 16 */
+//			0x1cc ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AC24) cam1_data9.dss_data16 */
+//			0x1c8 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AA19) cam0_data9.dss_data17 */
+//			0x1c4 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AB19) cam0_data8.dss_data18 */
+//			0x1c0 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AC20) cam0_pclk.dss_data19 */
+//			0x1bc ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AD17) cam0_wen.dss_data20 */
+//			0x1b8 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AC18) cam0_field.dss_data21 */
+//			0x1b4 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AD18) cam0_vd.dss_data22 */
+//			0x1b0 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AE17) cam0_hd.dss_data23 */
 			0x0a0 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS DATA 0 */
 			0x0a4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
 			0x0a8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
@@ -446,14 +446,14 @@
 
 	dss_pinctrl_sleep: dss_pinctrl_sleep {
 		pinctrl-single,pins = <
-//			0x020 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x024 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x028 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x02C (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x030 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x034 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x038 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
-//			0x03C (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1cc (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1c8 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1c4 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1c0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1bc (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1b8 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1b4 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+//			0x1b0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x0A0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
 			0x0A4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
 			0x0A8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
@@ -581,7 +581,24 @@
 			0x204 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data7 mode 0*/
 		>;
 	};
+	
+	mcasp0_pins_default: mcasp0_pins_default {
+		pinctrl-single,pins = <
+			0x190 ( PIN_INPUT_PULLDOWN | MUX_MODE0 ) /* (N24) mcasp0_aclkx.mcasp0_aclkx */
+			0x194 ( PIN_INPUT_PULLDOWN | MUX_MODE0 ) /* (N22) mcasp0_fsx.mcasp0_fsx */
+			0x198 ( PIN_OUTPUT_PULLDOWN | MUX_MODE0 ) /* (H23) mcasp0_axr0.mcasp0_axr0 */
+		>;
+	};
 
+	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	mcasp0_pins_sleep: mcasp0_pins_sleep {
+		pinctrl-single,pins = <
+			0x190 (PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (N24) mcasp0_aclkx.mcasp0_aclkx */
+			0x194 (PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (N22) mcasp0_fsx.mcasp0_fsx */
+			0x198 (PIN_INPUT_PULLDOWN | MUX_MODE7 ) /* (H23) mcasp0_axr0.mcasp0_axr0 */
+		>;
+	};
+	
 	mcasp1_pins: mcasp1_pins {
 		pinctrl-single,pins = <
 			0x1a0 ( PIN_INPUT_PULLDOWN | MUX_MODE3 ) /* (L23) mcasp0_aclkr.mcasp1_aclkx */
@@ -734,7 +751,7 @@
 		pagesize = <64>;
 		reg = <0x50>;
 		};
-		
+
 	tps65218: tps65218@24 {
 		reg = <0x24>;
 		compatible = "ti,tps65218";
@@ -1245,6 +1262,24 @@
 			vsync-active = <0>;
 		};
 	};
+};
+
+&mcasp0 {
+	#sound-dai-cells = <0>;
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&mcasp0_pins_default>;
+	pinctrl-1 = <&mcasp0_pins_sleep>;
+
+	status = "okay";
+
+	op-mode = <0>; /* MCASP_IIS_MODE */
+	tdm-slots = <2>;
+	/* 4 serializers */
+	serial-dir = <  /* 0: INACTIVE, 1: TX, 2: RX */
+		1 2 0 0
+	>;
+	tx-num-evt = <32>;
+	rx-num-evt = <32>;
 };
 
 &mcasp1 {
