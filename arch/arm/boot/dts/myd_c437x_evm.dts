@@ -752,6 +752,11 @@
 		reg = <0x50>;
 		};
 
+	ds3231@68 {
+		compatible = "ds3231";
+		reg = <0x68>;
+	};
+		
 	tps65218: tps65218@24 {
 		reg = <0x24>;
 		compatible = "ti,tps65218";
@@ -1310,7 +1315,7 @@
 };
 
 &rtc {
-	status = "okay";
+	status = "disabled";
 	ext-clk-src;
 };
 

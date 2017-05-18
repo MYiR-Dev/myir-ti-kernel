@@ -128,6 +128,7 @@ struct chip_desc {
 	unsigned		alarm:1;
 	u16			nvram_offset;
 	u16			nvram_size;
+	enum ds_type type;
 	u16			trickle_charger_reg;
 	u8			trickle_charger_setup;
 	u8			(*do_trickle_setup)(struct i2c_client *, uint32_t, bool);
@@ -140,33 +141,47 @@ static struct chip_desc chips[last_ds_type] = {
 	[ds_1307] = {
 		.nvram_offset	= 8,
 		.nvram_size	= 56,
+		.type = ds_1307,
 	},
 	[ds_1337] = {
 		.alarm		= 1,
+		.type = ds_1337,
 	},
 	[ds_1338] = {
 		.nvram_offset	= 8,
 		.nvram_size	= 56,
+		.type = ds_1338,
 	},
 	[ds_1339] = {
 		.alarm		= 1,
+		.type = ds_1339,
 		.trickle_charger_reg = 0x10,
 		.do_trickle_setup = &do_trickle_setup_ds1339,
 	},
 	[ds_1340] = {
+		.type = ds_1340,
 		.trickle_charger_reg = 0x08,
 	},
 	[ds_1388] = {
+		.type = ds_1338,
 		.trickle_charger_reg = 0x0a,
 	},
 	[ds_3231] = {
 		.alarm		= 1,
+		.type = ds_3231,
 	},
 	[mcp794xx] = {
 		.alarm		= 1,
+		.type = mcp794xx,
 		/* this is battery backed SRAM */
 		.nvram_offset	= 0x20,
 		.nvram_size	= 0x40,
+	},
+	[m41t00] = {
+		.type = m41t00,
+	},
+	[rx_8025] = {
+		.type = rx_8025,
 	},
 };
 
@@ -186,6 +201,23 @@ static const struct i2c_device_id ds1307_id[] = {
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, ds1307_id);
+
+static const struct of_device_id ds1307_dt_ids[] = {
+	{ .compatible = "ds1307", .data = &chips[ds_1307]},
+	{ .compatible = "ds1337", .data = &chips[ds_1337] },
+	{ .compatible = "ds1338", .data = &chips[ds_1338] },
+	{ .compatible = "ds1339", .data = &chips[ds_1339] },
+	{ .compatible = "ds1388", .data = &chips[ds_1388] },
+	{ .compatible = "ds1340", .data = &chips[ds_1340] },
+	{ .compatible = "ds3231", .data = &chips[ds_3231] },
+	{ .compatible = "m41t00", .data = &chips[m41t00] },
+	{ .compatible = "mcp7904x", .data = &chips[mcp794xx] },
+	{ .compatible = "mcp7941x", .data = &chips[mcp794xx] },
+	{ .compatible = "pt7c4338", .data = &chips[ds_1307] },
+	{ .compatible = "rx8025", .data = &chips[rx_8025] },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, ds1307_dt_ids);
 
 /*----------------------------------------------------------------------*/
 
@@ -873,6 +905,7 @@ static int ds1307_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
 {
 	struct ds1307		*ds1307;
+	const struct of_device_id *of_id;
 	int			err = -ENODEV;
 	int			tmp;
 	struct chip_desc	*chip = &chips[id->driver_data];
@@ -900,7 +933,15 @@ static int ds1307_probe(struct i2c_client *client,
 	i2c_set_clientdata(client, ds1307);
 
 	ds1307->client	= client;
-	ds1307->type	= id->driver_data;
+	
+	of_id = of_match_device(ds1307_dt_ids, &client->dev);
+	if (of_id) {
+		chip =(struct chip_desc	*)of_id->data;
+		ds1307->type = chip->type;
+	} else {
+		ds1307->type = id->driver_data;
+	}
+
 
 	if (!pdata && client->dev.of_node)
 		ds1307_trickle_of_init(client, chip);
@@ -1253,6 +1294,7 @@ static struct i2c_driver ds1307_driver = {
 	.driver = {
 		.name	= "rtc-ds1307",
 		.owner	= THIS_MODULE,
+		.of_match_table = ds1307_dt_ids,
 	},
 	.probe		= ds1307_probe,
 	.remove		= ds1307_remove,
