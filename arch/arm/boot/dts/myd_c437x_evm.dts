@@ -691,6 +691,43 @@
 		>;
 	};
 
+	spi0_pins_default: spi0_pins_default {
+		pinctrl-single,pins = <
+			0x150 ( PIN_INPUT | MUX_MODE0 ) /* (P23) spi0_sclk.spi0_sclk */
+			0x154 ( PIN_INPUT | MUX_MODE0 ) /* (T22) spi0_d0.spi0_d0 */
+			0x158 ( PIN_INPUT | MUX_MODE0 ) /* (T21) spi0_d1.spi0_d1 */
+			0x15c ( PIN_OUTPUT | MUX_MODE0 ) /* (T20) spi0_cs0.spi0_cs0 */
+		>;
+	};
+
+	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	spi0_pins_sleep: spi0_pins_sleep {
+		pinctrl-single,pins = <
+			0x150 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (P23) spi0_sclk.spi0_sclk */
+			0x154 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (T22) spi0_d0.spi0_d0 */
+			0x158 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (T21) spi0_d1.spi0_d1 */
+			0x15c (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (T20) spi0_cs0.spi0_cs0 */
+		>;
+	};
+	
+	spi4_pins_default: spi4_pins_default {
+		pinctrl-single,pins = <
+			0x250 ( PIN_INPUT | MUX_MODE0 ) /* (P25) spi4_sclk.spi4_sclk */
+			0x254 ( PIN_INPUT | MUX_MODE0 ) /* (R24) spi4_d0.spi4_d0 */
+			0x258 ( PIN_INPUT | MUX_MODE0 ) /* (P24) spi4_d1.spi4_d1 */
+			0x25c ( PIN_OUTPUT | MUX_MODE0 ) /* (N25) spi4_cs0.spi4_cs0 */
+		>;
+	};
+
+	/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	spi4_pins_sleep: spi4_pins_sleep {
+		pinctrl-single,pins = <
+			0x250 (PIN_INPUT_PULLUP | MUX_MODE7  ) /* (P25) spi4_sclk.spi4_sclk */
+			0x254 (PIN_INPUT_PULLUP | MUX_MODE7  ) /* (R24) spi4_d0.spi4_d0 */
+			0x258 (PIN_INPUT_PULLUP | MUX_MODE7  ) /* (P24) spi4_d1.spi4_d1 */
+			0x25c (PIN_INPUT_PULLUP | MUX_MODE7  ) /* (N25) spi4_cs0.spi4_cs0 */
+		>;
+	};
 /* Optional sleep pin settings. Must manually enter values in the below skeleton. */
 	uart5_pins_sleep: uart5_pins_sleep {
 		pinctrl-single,pins = <
@@ -1204,6 +1241,32 @@
 	rs485-rx-during-tx="false";
 	rs485-rts-delay = <1 1>;
 	linux,rs485-enabled-at-boot-time;
+};
+
+&spi0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi0_pins_default>;
+	ti,pindir-d0-in-d1-out =<1>; // optional
+
+	spidev@0{
+		compatible = "rohm,dh2228fv";
+		spi-max-frequency = <48000000>;
+		reg =<0x0>;
+		};
+};
+
+&spi4 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi4_pins_default>;
+	ti,pindir-d0-in-d1-out =<1>; // optional
+
+	spidev@4{
+		compatible = "rohm,dh2228fv";
+		spi-max-frequency = <48000000>;
+		reg =<0x0>;
+		};
 };
 
 &dss {
