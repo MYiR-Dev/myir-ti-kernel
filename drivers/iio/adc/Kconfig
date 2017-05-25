@@ -302,6 +302,11 @@ config TI_AM335X_ADC
 	  Say yes here to build support for Texas Instruments ADC
 	  driver which is also a MFD client.
 
+config TI_AM437X_ADC1
+    tristate "TI's AM437X ADC1 driver"
+    help
+      Say yes here to build support for Texas Instruments ADC1 driver
+
 config TWL4030_MADC
 	tristate "TWL4030 MADC (Monitoring A/D Converter)"
 	depends on TWL4030_CORE

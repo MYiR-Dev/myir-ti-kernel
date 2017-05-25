@@ -699,6 +699,24 @@ static struct omap_hwmod_ocp_if am43xx_l4_wkup__adc_tsc = {
 	.user           = OCP_USER_MPU,
 };
 
+/* L4 PER -> ADC1 MYiR */
+static struct omap_hwmod_addr_space am437x_adc1_addrs[] = {
+	{
+		.pa_start   = 0x4834C000,
+		.pa_end     = 0x4834C000 + SZ_8K - 1,
+		.flags      = ADDR_TYPE_RT
+	},
+	{ }
+};
+
+static struct omap_hwmod_ocp_if am437x_l3_s__adc1 = {
+	.master     = &am33xx_l4_wkup_hwmod,
+	.slave      = &am437x_adc1_hwmod,
+	.clk        = "l3s_gclk",
+	.addr       = am437x_adc1_addrs,
+	.user       = OCP_USER_MPU,
+};
+
 static struct omap_hwmod_ocp_if am43xx_l4_hs__cpgmac0 = {
 	.master		= &am43xx_l4_hs_hwmod,
 	.slave		= &am33xx_cpgmac0_hwmod,
@@ -985,6 +1003,7 @@ static struct omap_hwmod_ocp_if *am43xx_hwmod_ocp_ifs[] __initdata = {
 	&am43xx_l4_wkup__gpio0,
 	&am43xx_l4_wkup__wd_timer1,
 	&am43xx_l4_wkup__adc_tsc,
+	&am437x_l3_s__adc1, /* MYiR */
 	&am43xx_l3_s__qspi,
 	&am33xx_l4_per__dcan0,
 	&am33xx_l4_per__dcan1,

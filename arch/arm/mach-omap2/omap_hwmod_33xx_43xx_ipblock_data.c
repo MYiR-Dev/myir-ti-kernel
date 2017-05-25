@@ -1370,6 +1370,35 @@ struct omap_hwmod am33xx_wd_timer1_hwmod = {
 	},
 };
 
+/*
+ * am437x adc1 class, MYiR
+ */
+static struct omap_hwmod_class_sysconfig am437x_adc1_sysc = {
+	.rev_offs   = 0x00,
+	.sysc_offs  = 0x10,
+	.sysc_flags = SYSC_HAS_SIDLEMODE,
+	.idlemodes  = (SIDLE_FORCE | SIDLE_NO | SIDLE_SMART |
+				   SIDLE_SMART_WKUP),
+	.sysc_fields = &omap_hwmod_sysc_type2,
+};
+
+struct omap_hwmod_class am437x_adc1_hwmod_class = {
+	.name = "adc1",
+	.sysc = &am437x_adc1_sysc,
+};
+
+struct omap_hwmod am437x_adc1_hwmod = {
+	.name       = "adc1",
+	.class      = &am437x_adc1_hwmod_class,
+	.clkdm_name = "l3s_clkdm",
+	.main_clk   = "l3s_gclk",
+	.prcm       = {
+		.omap4  = {
+			.modulemode = MODULEMODE_SWCTRL,
+		},
+	},
+};
+
 static void omap_hwmod_am33xx_clkctrl(void)
 {
 	CLKCTRL(am33xx_uart2_hwmod, AM33XX_CM_PER_UART1_CLKCTRL_OFFSET);
@@ -1503,6 +1532,7 @@ static void omap_hwmod_am43xx_clkctrl(void)
 	CLKCTRL(am33xx_sha0_hwmod , AM43XX_CM_PER_SHA0_CLKCTRL_OFFSET);
 	CLKCTRL(am33xx_aes0_hwmod , AM43XX_CM_PER_AES0_CLKCTRL_OFFSET);
 	CLKCTRL(am33xx_rng_hwmod, AM43XX_CM_PER_RNG_CLKCTRL_OFFSET);
+	CLKCTRL(am437x_adc1_hwmod, AM43XX_CM_PER_ADC1_CLKCTRL_OFFSET); /* MYiR */
 }
 
 static void omap_hwmod_am43xx_rst(void)

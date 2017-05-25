@@ -833,7 +833,18 @@
 			};
 
 		};
-
+		
+			/* ADC1, MYiR */
+	        adc1: adc1@4834c000 {
+	            compatible = "ti,am437x-adc1";
+	            reg = <0x4834c000 0x2000>;
+	            ti,hwmods = "adc1";
+	            clocks = <&l3s_gclk>;
+	            interrupts = <GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
+	            clock-names = "fck";
+	            status = "disabled";
+	        };
+	
 		sham: sham@53100000 {
 			compatible = "ti,omap5-sham";
 			ti,hwmods = "sham";
