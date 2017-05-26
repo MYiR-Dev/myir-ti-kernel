@@ -438,6 +438,8 @@ dtb-$(CONFIG_SOC_AM43XX) += \
 	am437x-gp-evm-hdmi.dtb \
 	myd_c437x_evm.dtb \
 	myd_c437x_evm_hdmi.dtb \
+	myir_ricoboard.dtb \
+	myir_ricoboard_hdmi.dtb \
 	myd_c437x_idk.dtb \
 	myd_c437x_idk_lcd.dtb 
 dtb-$(CONFIG_SOC_OMAP5) += \
