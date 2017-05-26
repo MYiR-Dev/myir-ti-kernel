@@ -648,13 +648,7 @@
 			0x174 (PIN_INPUT | PULL_DISABLE | SLEWCTRL_FAST | DS0_PULL_UP_DOWN_EN | MUX_MODE0) /* uart0_txd.uart0_txd */
 		>;
 	};
-
-	gpio3_pins: gpio3_pins_default {
-		pinctrl-single,pins = <
-		0x2a4 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (N23) EMU1.gpio3[7] */
-		0x2a8 ( PIN_OUTPUT | MUX_MODE7 ) /* (T24) EMU1.gpio3[8] */
-		>;
-	};
+	
 	uart0_pins_sleep: uart0_pins_sleep {
 		pinctrl-single,pins = <
 			0x168 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)
@@ -688,6 +682,14 @@
 			0x110 ( PIN_OUTPUT | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
 			0x108 ( PIN_INPUT_PULLUP | MUX_MODE3 ) /* (D16) mii1_col.uart5_rxd */
 			0x144 ( PIN_OUTPUT_PULLDOWN | MUX_MODE3 ) /* (A16) rmii1_ref_clk.uart5_txd */
+		>;
+	};
+/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
+	uart5_pins_sleep: uart5_pins_sleep {
+		pinctrl-single,pins = <
+			0x110 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
+			0x108 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (D16) mii1_col.uart5_rxd */
+			0x144 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (A16) mii1_rx_dv.uart5_txd */
 		>;
 	};
 
@@ -728,12 +730,11 @@
 			0x25c (PIN_INPUT_PULLUP | MUX_MODE7  ) /* (N25) spi4_cs0.spi4_cs0 */
 		>;
 	};
-/* Optional sleep pin settings. Must manually enter values in the below skeleton. */
-	uart5_pins_sleep: uart5_pins_sleep {
+
+	gpio3_pins: gpio3_pins_default {
 		pinctrl-single,pins = <
-			0x110 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (B13) mii1_rx_er.gpio3[2] */
-			0x108 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (D16) mii1_col.uart5_rxd */
-			0x144 (PIN_INPUT_PULLUP | MUX_MODE7 ) /* (A16) mii1_rx_dv.uart5_txd */
+		0x2a4 ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (N23) EMU1.gpio3[7] */
+		0x2a8 ( PIN_OUTPUT | MUX_MODE7 ) /* (T24) EMU1.gpio3[8] */
 		>;
 	};
 
