@@ -245,6 +245,13 @@ static int omap_connector_mode_valid(struct drm_connector *connector,
 	struct drm_device *dev = connector->dev;
 	struct drm_display_mode *new_mode;
 	int r, ret = MODE_BAD;
+	
+#if defined(CONFIG_SOC_AM43XX)
+	DBG("omap_connector_mode_valid mode->clock=%d KHz\r\n", mode->clock);
+	if(mode->clock > 100000){
+		return MODE_CLOCK_HIGH;
+	}
+#endif
 
 	copy_timings_drm_to_omap(&timings, mode);
 	mode->vrefresh = drm_mode_vrefresh(mode);
