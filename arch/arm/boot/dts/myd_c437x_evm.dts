@@ -885,21 +885,21 @@
 			interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
 		};
 	};
-
-        ov2659@30 {
-		compatible = "ovti,ov2659";
-		reg = <0x30>;
+		ov5640@3c {
+		compatible = "ovti,ov5640";
+		reg = <0x3c>;
 
 		clocks = <&clkout2_ck>;
 		clock-names = "xvclk";
-
 		port {
-			ov2659_0: endpoint {
+			ov5640_0: endpoint {
 				remote-endpoint = <&vpfe0_ep>;
 				link-frequencies = /bits/ 64 <70000000>;
 			};
 		};
 	};
+	
+
 };
 
 &i2c1 {
@@ -1308,7 +1308,7 @@
 
 	port {
 		vpfe0_ep: endpoint {
-			remote-endpoint = <&ov2659_0>;
+			remote-endpoint = <&ov5640_0>;
 			ti,am437x-vpfe-interface = <0>;
 			bus-width = <8>;
 			hsync-active = <0>;
