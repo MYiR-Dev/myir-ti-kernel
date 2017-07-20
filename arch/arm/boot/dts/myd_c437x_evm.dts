@@ -42,7 +42,7 @@
 		default-brightness-level = <5>;
 	};
 
-	gpio_keys: gpio_key_pads@0 {
+	gpio_keys: volume_keys@0 {
 		compatible = "gpio-keys";
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -50,14 +50,14 @@
 
 		switch@1 {
 			label = "sw3";
-			linux,code = <102>;
+			linux,code = <114>;
 			gpios = <&gpio1 28 GPIO_ACTIVE_LOW>;
 			gpio-key,wakeup;
 		};
 		
 		switch@2 {
 			label = "sw4";
-			linux,code = <158>;
+			linux,code = <115>;
 			gpios = <&gpio5 13 GPIO_ACTIVE_LOW>;
 			gpio-key,wakeup;
 		};		
@@ -69,21 +69,21 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&leds_pins>;
 		led@0 {
-			label = "myc_d36";
+			label = "myc:blue:cpu0";
 			gpios = <&gpio5 11 GPIO_ACTIVE_HIGH>;	/* Bank 5, pin 11 */
 			linux,default-trigger = "cpu0";
 			default-state = "off";
 		};
 
 		led@1 {
-			label = "myd_d34";
+			label = "myd:blue:heartbeat";
 			gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;	/* Bank 2, pin 1 */
 			linux,default-trigger = "heartbeat";
 			default-state = "off";
 		};
 
 		led@2 {
-			label = "myd_d35";
+			label = "myd:blue:mmc1";
 			gpios = <&gpio3 1 GPIO_ACTIVE_HIGH>;	/* Bank 3, pin 1 */
 			linux,default-trigger = "mmc0";
 			default-state = "off";
@@ -91,7 +91,7 @@
 
 
 		led@3 {
-			label = "myd_d36";
+			label = "myd:blue:usr3";
 			gpios = <&gpio3 17 GPIO_ACTIVE_HIGH>;	/* Bank 3, pin 17 */
 			default-state = "off";
 		};
@@ -927,7 +927,7 @@
 	};
 	
 	ft0x5x_ts@38 {
-	        compatible = "ft5x06_ts";
+	    compatible = "ft5x06_ts";
 		pinctrl-names = "default","sleep";
 		pinctrl-0 = <&ft5x0x_pins_default>;
 		pinctrl-1 = <&ft5x0x_pins_sleep>;
@@ -1385,5 +1385,5 @@
 };
 
 &sgx {
-	status = "disabled";
+	status = "okay";
 };
