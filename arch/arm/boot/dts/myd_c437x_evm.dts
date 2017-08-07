@@ -160,7 +160,7 @@
 
 &am43xx_pinmux {
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&clkout_pins &gpio_keys_pins_default &unused_pins_default>;
+	pinctrl-0 = <&clkout_pins &gpio_keys_pins_default &unused_pins_default &gpio3_pins>;
 	pinctrl-1 = <&unused_pins_sleep &gpio_keys_pins_sleep>;
 
         clkout_pins: pinmux_clkout_pins {
@@ -1038,7 +1038,7 @@
 
 &gpio3 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&gpio3_pins>;
+	//pinctrl-0 = <&gpio3_pins>;
 	status = "okay";
 
 	p8 {
@@ -1047,6 +1047,9 @@
 		output-high;
 		line-name = "EMMC_RST";
 	};
+};
+&gpio4 {
+	status = "okay";
 };
 
 &gpio5 {

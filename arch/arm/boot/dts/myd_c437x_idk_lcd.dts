@@ -143,7 +143,7 @@
 
 &am43xx_pinmux {
 	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&unused_pins_default  &gpio_keys_pins_default>;
+	pinctrl-0 = <&unused_pins_default  &gpio_keys_pins_default &gpio3_pins &gpio4_pins>;
 	pinctrl-1 = <&unused_pins_sleep>;
 
     unused_pins_default: pinmux_unused_pins_default {
@@ -810,10 +810,13 @@
 &gpio1 {
 	status = "okay";
 };
+&gpio2 {
+	status = "okay";
+};
 
 &gpio3 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&gpio3_pins>;
+	//pinctrl-0 = <&gpio3_pins>;
 	status = "okay";
 
 //	p2 {
@@ -842,7 +845,7 @@
 
 &gpio4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&gpio4_pins>;
+	//pinctrl-0 = <&gpio4_pins>;
 	status = "okay";
 
 	p19 {
