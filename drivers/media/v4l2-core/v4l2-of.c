@@ -14,6 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/types.h>
 
@@ -82,8 +83,6 @@ static void v4l2_of_parse_parallel_bus(const struct device_node *node,
 {
 	struct v4l2_of_bus_parallel *bus = &endpoint->bus.parallel;
 	unsigned int flags = 0;
-	struct property *prop;
-	const __be32 *cur;
 	u32 v;
 
 	if (!of_property_read_u32(node, "hsync-active", &v))
@@ -94,10 +93,6 @@ static void v4l2_of_parse_parallel_bus(const struct device_node *node,
 		flags |= v ? V4L2_MBUS_VSYNC_ACTIVE_HIGH :
 			V4L2_MBUS_VSYNC_ACTIVE_LOW;
 
-	if (!of_property_read_u32(node, "pclk-sample", &v))
-		flags |= v ? V4L2_MBUS_PCLK_SAMPLE_RISING :
-			V4L2_MBUS_PCLK_SAMPLE_FALLING;
-
 	if (!of_property_read_u32(node, "field-even-active", &v))
 		flags |= v ? V4L2_MBUS_FIELD_EVEN_HIGH :
 			V4L2_MBUS_FIELD_EVEN_LOW;
@@ -105,6 +100,10 @@ static void v4l2_of_parse_parallel_bus(const struct device_node *node,
 		endpoint->bus_type = V4L2_MBUS_PARALLEL;
 	else
 		endpoint->bus_type = V4L2_MBUS_BT656;
+
+	if (!of_property_read_u32(node, "pclk-sample", &v))
+		flags |= v ? V4L2_MBUS_PCLK_SAMPLE_RISING :
+			V4L2_MBUS_PCLK_SAMPLE_FALLING;
 
 	if (!of_property_read_u32(node, "data-active", &v))
 		flags |= v ? V4L2_MBUS_DATA_ACTIVE_HIGH :
@@ -125,22 +124,6 @@ static void v4l2_of_parse_parallel_bus(const struct device_node *node,
 		flags |= v ? V4L2_MBUS_VIDEO_SOG_ACTIVE_HIGH :
 			V4L2_MBUS_VIDEO_SOG_ACTIVE_LOW;
 
-	if (endpoint->bus_type == V4L2_MBUS_BT656) {
-
-		if (of_find_property(node, "pixel-mux", NULL))
-			bus->pixmux = 1;
-		else
-			bus->pixmux = 0;
-
-		bus->num_channels = 0;
-		of_property_for_each_u32(node, "channels", prop, cur, v) {
-			bus->channels[bus->num_channels] = v;
-			bus->num_channels++;
-			if (bus->num_channels == ARRAY_SIZE(bus->channels))
-				break;
-		}
-	}
-
 	bus->flags = flags;
 
 }
@@ -159,6 +142,10 @@ static void v4l2_of_parse_parallel_bus(const struct device_node *node,
  * V4L2_MBUS_CSI2_CONTINUOUS_CLOCK flag.
  * The caller should hold a reference to @node.
  *
+ * NOTE: This function does not parse properties the size of which is
+ * variable without a low fixed limit. Please use
+ * v4l2_of_alloc_parse_endpoint() in new drivers instead.
+ *
  * Return: 0.
  */
 int v4l2_of_parse_endpoint(const struct device_node *node,
@@ -167,8 +154,9 @@ int v4l2_of_parse_endpoint(const struct device_node *node,
 	int rval;
 
 	of_graph_parse_endpoint(node, &endpoint->base);
-	endpoint->bus_type = 0;
-	memset(&endpoint->bus, 0, sizeof(endpoint->bus));
+	/* Zero fields from bus_type to until the end */
+	memset(&endpoint->bus_type, 0, sizeof(*endpoint) -
+	       offsetof(typeof(*endpoint), bus_type));
 
 	rval = v4l2_of_parse_csi_bus(node, endpoint);
 	if (rval)
@@ -183,6 +171,88 @@ int v4l2_of_parse_endpoint(const struct device_node *node,
 	return 0;
 }
 EXPORT_SYMBOL(v4l2_of_parse_endpoint);
+
+/*
+ * v4l2_of_free_endpoint() - free the endpoint acquired by
+ * v4l2_of_alloc_parse_endpoint()
+ * @endpoint - the endpoint the resources of which are to be released
+ *
+ * It is safe to call this function with NULL argument or on an
+ * endpoint the parsing of which failed.
+ */
+void v4l2_of_free_endpoint(struct v4l2_of_endpoint *endpoint)
+{
+	if (IS_ERR_OR_NULL(endpoint))
+		return;
+
+	kfree(endpoint->link_frequencies);
+	kfree(endpoint);
+}
+EXPORT_SYMBOL(v4l2_of_free_endpoint);
+
+/**
+ * v4l2_of_alloc_parse_endpoint() - parse all endpoint node properties
+ * @node: pointer to endpoint device_node
+ *
+ * All properties are optional. If none are found, we don't set any flags.
+ * This means the port has a static configuration and no properties have
+ * to be specified explicitly.
+ * If any properties that identify the bus as parallel are found and
+ * slave-mode isn't set, we set V4L2_MBUS_MASTER. Similarly, if we recognise
+ * the bus as serial CSI-2 and clock-noncontinuous isn't set, we set the
+ * V4L2_MBUS_CSI2_CONTINUOUS_CLOCK flag.
+ * The caller should hold a reference to @node.
+ *
+ * v4l2_of_alloc_parse_endpoint() has two important differences to
+ * v4l2_of_parse_endpoint():
+ *
+ * 1. It also parses variable size data and
+ *
+ * 2. The memory it has allocated to store the variable size data must
+ *    be freed using v4l2_of_free_endpoint() when no longer needed.
+ *
+ * Return: Pointer to v4l2_of_endpoint if successful, on error a
+ * negative error code.
+ */
+struct v4l2_of_endpoint *v4l2_of_alloc_parse_endpoint(
+	const struct device_node *node)
+{
+	struct v4l2_of_endpoint *endpoint;
+	int len;
+	int rval;
+
+	endpoint = kzalloc(sizeof(*endpoint), GFP_KERNEL);
+	if (!endpoint)
+		return ERR_PTR(-ENOMEM);
+
+	rval = v4l2_of_parse_endpoint(node, endpoint);
+	if (rval < 0)
+		goto out_err;
+
+	if (of_get_property(node, "link-frequencies", &len)) {
+		endpoint->link_frequencies = kmalloc(len, GFP_KERNEL);
+		if (!endpoint->link_frequencies) {
+			rval = -ENOMEM;
+			goto out_err;
+		}
+
+		endpoint->nr_of_link_frequencies =
+			len / sizeof(*endpoint->link_frequencies);
+
+		rval = of_property_read_u64_array(
+			node, "link-frequencies", endpoint->link_frequencies,
+			endpoint->nr_of_link_frequencies);
+		if (rval < 0)
+			goto out_err;
+	}
+
+	return endpoint;
+
+out_err:
+	v4l2_of_free_endpoint(endpoint);
+	return ERR_PTR(rval);
+}
+EXPORT_SYMBOL(v4l2_of_alloc_parse_endpoint);
 
 /**
  * v4l2_of_parse_link() - parse a link between two endpoints
@@ -244,3 +314,4 @@ void v4l2_of_put_link(struct v4l2_of_link *link)
 	of_node_put(link->remote_node);
 }
 EXPORT_SYMBOL(v4l2_of_put_link);
+
