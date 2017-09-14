@@ -370,6 +370,7 @@ struct v4l2_pix_format {
 	__u32			flags;		/* format flags (V4L2_PIX_FMT_FLAG_*) */
 	__u32			ycbcr_enc;	/* enum v4l2_ycbcr_encoding */
 	__u32			quantization;	/* enum v4l2_quantization */
+    __u32			xfer_func;	/* enum v4l2_xfer_func */
 };
 
 /*      Pixel format         FOURCC                          depth  Description  */
