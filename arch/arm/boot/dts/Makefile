@@ -419,7 +419,8 @@ dtb-$(CONFIG_SOC_AM33XX) += \
 	am335x-chiliboard.dtb \
 	myd_c335x.dtb \
 	myd_j335x.dtb \
-	myd_y335x.dtb
+	myd_y335x.dtb \
+	myd_y335x_emmc.dtb
 dtb-$(CONFIG_ARCH_OMAP4) += \
 	omap4-duovero-parlor.dtb \
 	omap4-panda.dtb \
