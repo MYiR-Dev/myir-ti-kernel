@@ -104,7 +104,6 @@ fw-shipped-$(CONFIG_USB_EMI62) += emi62/loader.fw emi62/bitstream.fw \
 fw-shipped-$(CONFIG_USB_KAWETH) += kaweth/new_code.bin kaweth/trigger_code.bin \
 				   kaweth/new_code_fix.bin \
 				   kaweth/trigger_code_fix.bin
-fw-shipped-$(CONFIG_BCMDHD) += bcmdhd/fw_bcmdhd.bin bcmdhd/bcmdhd.cal
 #fw-shipped-$(CONFIG_WKUP_M3_IPC) += am335x-pm-firmware.elf
 ifdef CONFIG_FIRMWARE_IN_KERNEL
 fw-shipped-$(CONFIG_USB_SERIAL_KEYSPAN_MPR) += keyspan/mpr.fw
