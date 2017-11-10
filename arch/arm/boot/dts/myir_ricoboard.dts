@@ -41,7 +41,15 @@
 		brightness-levels = <0 51 53 56 62 75 101 152 255>;
 		default-brightness-level = <5>;
 	};
-
+	/* 4.3 inch, 480x272 resolution LCD, MYiR */
+/*	
+	lcd_bl: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&ecap0 0 50000 PWM_POLARITY_INVERTED>;
+		brightness-levels = <0 1 5 20 40 80 160 200 255>;
+		default-brightness-level = <2>;
+	};
+*/	
 	gpio_keys: gpio_key_pads@0 {
 		compatible = "gpio-keys";
 		#address-cells = <1>;
