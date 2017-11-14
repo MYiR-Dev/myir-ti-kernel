@@ -273,9 +273,10 @@ static irqreturn_t titsc_irq(int irq, void *dev)
 	status = titsc_readl(ts_dev, REG_RAWIRQSTATUS);
 	if (status & IRQENB_HW_PEN) {
 		ts_dev->pen_down = true;
+        titsc_writel(ts_dev, REG_IRQWAKEUP, 0x00);
+		titsc_writel(ts_dev, REG_IRQCLR, IRQENB_HW_PEN);
 		irqclr |= IRQENB_HW_PEN;
 	}
-
 	if (status & IRQENB_PENUP) {
 		fsm = titsc_readl(ts_dev, REG_ADCFSM);
 		if (fsm == ADCFSM_STEPID) {
@@ -312,7 +313,7 @@ static irqreturn_t titsc_irq(int irq, void *dev)
 			z /= z2;
 			z = (z + 2047) >> 12;
 
-			if (z <= MAX_12BIT) {
+			if (z <= MAX_12BIT && z >= 100) {
 				input_report_abs(input_dev, ABS_X, x);
 				input_report_abs(input_dev, ABS_Y, y);
 				input_report_abs(input_dev, ABS_PRESSURE, z);
