@@ -548,6 +548,7 @@ static struct pinmux_config gpio_led_mux[] = {
 	    {"mcasp0_aclkr.gpio3_18",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
         {"spi0_d0.gpio0_3",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
         {"gpmc_ad11.gpio0_27",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+        {"xdma_event_intr0.gpio0_19",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -1092,6 +1093,8 @@ static struct platform_device leds_gpio = {
 	},
 };
 
+#define V2_ETHERNET_REST_PIN GPIO_TO_PIN(0,19)
+
 static void gpio_led_init(int evm_id, int profile)
 {
 	int err;
@@ -1100,9 +1103,17 @@ static void gpio_led_init(int evm_id, int profile)
 	err = platform_device_register(&leds_gpio);
 	if (err)
 		pr_err("failed to register gpio led device\n");
+       if (!gpio_request_one(V2_ETHERNET_REST_PIN, GPIOF_OUT_INIT_HIGH, "ethernet_reset")) {
+               gpio_export(V2_ETHERNET_REST_PIN, 0);
+               gpio_set_value(V2_ETHERNET_REST_PIN, 0);
+               mdelay(100);
+               gpio_set_value(V2_ETHERNET_REST_PIN, 1);
+
+       } else {
+               printk(KERN_ERR"request V2_ETHERNET_REST_PIN failed!\n");
+       }
+
 }
-
-
 
 static struct evm_dev_cfg myd_am335x_dev_cfg[] = {
 	{evm_nand_init, DEV_ON_BASEBOARD, PROFILE_ALL},
