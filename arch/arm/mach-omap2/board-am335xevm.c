@@ -549,6 +549,7 @@ static struct pinmux_config gpio_led_mux[] = {
         {"spi0_d0.gpio0_3",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
         {"gpmc_ad11.gpio0_27",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
         {"xdma_event_intr0.gpio0_19",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+        {"mcasp0_fsr.gpio3_19",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -1094,6 +1095,7 @@ static struct platform_device leds_gpio = {
 };
 
 #define V2_ETHERNET_REST_PIN GPIO_TO_PIN(0,19)
+#define V2_EXT_WDI_PIN	GPIO_TO_PIN(3,19)
 
 static void gpio_led_init(int evm_id, int profile)
 {
@@ -1115,6 +1117,26 @@ static void gpio_led_init(int evm_id, int profile)
 
 }
 
+#ifdef  CONFIG_MYIR_WDT
+/* MYIR Watchdog device CAT823 */
+static struct myir_wdt_platdata myir_wdt_data = {
+    .default_period_ms = 200,
+    .gpio_pin = V2_EXT_WDI_PIN,
+};
+static struct platform_device myir_wdt_device = {
+    .name = "myir-watchdog",
+    .id = -1,
+    .dev = {
+        .platform_data = &myir_wdt_data,
+    },
+};
+
+static void myir_wdt_init(int evm_id, int profile)
+{
+        platform_device_register(&myir_wdt_device);
+}
+#endif /* CONFIG_MYIR_WDT */
+
 static struct evm_dev_cfg myd_am335x_dev_cfg[] = {
 	{evm_nand_init, DEV_ON_BASEBOARD, PROFILE_ALL},
 	{mmc0_init,	DEV_ON_BASEBOARD, PROFILE_ALL},
@@ -1134,6 +1156,9 @@ static struct evm_dev_cfg myd_am335x_dev_cfg[] = {
 	{d_can_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
 	{gpio_keys_init,  DEV_ON_BASEBOARD, PROFILE_ALL},
 	{gpio_led_init,  DEV_ON_BASEBOARD, PROFILE_ALL},
+#ifdef CONFIG_MYIR_WDT
+        {myir_wdt_init, DEV_ON_BASEBOARD, PROFILE_ALL},
+#endif
 	{NULL, 0, 0},
 };
 

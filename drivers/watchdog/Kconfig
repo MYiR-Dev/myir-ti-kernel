@@ -343,6 +343,13 @@ config IMX2_WDT
 	  To compile this driver as a module, choose M here: the
 	  module will be called imx2_wdt.
 
+config MYIR_WDT
+    tristate "MYIR watchdog"
+    depends on ARCH_OMAP
+    help
+      This is the driver for external watchdog chip CAT823-D.
+
+
 # AVR32 Architecture
 
 config AT32AP700X_WDT

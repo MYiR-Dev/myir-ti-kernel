@@ -60,6 +60,11 @@ struct gslx680_platform_data {
 	u8      multi_touch;
 	u8      polling_mode;
 };
+/* MYIR watchdog */
+struct myir_wdt_platdata {
+    int default_period_ms;
+    int gpio_pin;
+};
 
 #endif
 #endif
