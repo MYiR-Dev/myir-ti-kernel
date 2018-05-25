@@ -757,11 +757,11 @@
 		};
 		partition@9 {
 			label = "NAND.rootfs";
-			reg = <0x00A00000 0x07600000>;
+			reg = <0x00A00000 0x0D600000>;
 		};
 		partition@10 {
 			label = "NAND.userdata";
-			reg = <0x08000000 0x08000000>;
+			reg = <0x0E000000 0x02000000>;
 		};		
 	};
 };

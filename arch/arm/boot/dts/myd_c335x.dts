@@ -627,6 +627,12 @@
 		VDDIO-supply = <&vdd_3v3>;
 	};
 
+	ft5x0x_ts:ft5x0x_ts@0x38 {
+		compatible = "ft5x06_ts";
+                reg = <0x38>;
+                polling_mode = /bits/ 8 <1>;
+                multi_touch = /bits/ 8 <0>;
+            };
 };
 
 &lcdc {
@@ -730,11 +736,11 @@
 		};
 		partition@9 {
 			label = "NAND.rootfs";
-			reg = <0x00A00000 0x07600000>;
+			reg = <0x00A00000 0x0D600000>;
 		};
 		partition@10 {
 			label = "NAND.userdata";
-			reg = <0x08000000 0x08000000>;
+			reg = <0x0E000000 0x02000000>;
 		};		
 	};
 };
