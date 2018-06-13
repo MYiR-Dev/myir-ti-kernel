@@ -740,7 +740,7 @@
 		};
 		partition@10 {
 			label = "NAND.userdata";
-			reg = <0x0E000000 0x02000000>;
+			reg = <0x0E000000 0>;
 		};		
 	};
 };
