@@ -106,7 +106,15 @@
 		always-running;
 		hw_margin_ms = <1000>;
 	};
-
+	/* 4.3 inch, 480x272 resolution LCD, MYiR */
+/*	
+	lcd_bl: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&ecap0 0 50000 PWM_POLARITY_INVERTED>;
+		brightness-levels = <0 1 5 20 40 80 160 200 255>;
+		default-brightness-level = <2>;
+	};
+*/	
 	backlight {
 		compatible = "pwm-backlight";
 		pwms = <&ecap0 0 50000 PWM_POLARITY_INVERTED>;
@@ -139,6 +147,34 @@
 			};
 		};
 	};
+		/* 4.3 inch, 480x272 resolution LCD, MYiR */
+/*		
+	lcd0: display {
+		compatible = "osddisplays,osd057T0559-34ts", "panel-dpi";
+		label = "lcd";
+		panel-timing {
+			clock-frequency = <9600000>;
+			hactive = <480>;
+			vactive = <272>;
+			hfront-porch = <2>;
+			hback-porch = <2>;
+			hsync-len = <41>;
+			vback-porch = <2>;
+			vfront-porch = <2>;
+			vsync-len = <10>;
+			hsync-active = <0>;
+			vsync-active = <0>;
+			de-active = <1>;
+			pixelclk-active = <1>;
+		};
+
+		port {
+			lcd_in: endpoint {
+				remote-endpoint = <&dpi_out>;
+			};
+		};
+	};
+*/
 };
 
 &am43xx_pinmux {
@@ -1015,7 +1051,19 @@
                 ti,adc-channels = <0 1 2 3>;
         };
 };
-
+ /* 4.3 inch, 480x272 resolution LCD, MYiR */
+/*
+&tscadc {
+	status = "okay";
+	tsc {
+		ti,wires = <4>;
+		ti,x-plate-resistance = <300>;
+		ti,coordinate-readouts = <5>;
+		ti,wire-config = <0x00 0x11 0x22 0x33>;
+		ti,charge-delay = <0x400>;
+	};
+};
+*/
 &cpu {
 	cpu0-supply = <&dcdc2>;
 	ti,opp-disable-exception = <300000>;
