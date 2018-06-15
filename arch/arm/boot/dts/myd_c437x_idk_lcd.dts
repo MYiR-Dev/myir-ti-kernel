@@ -1083,7 +1083,7 @@
 	port {
 		dpi_out: endpoint@0 {
 			remote-endpoint = <&lcd_in>;
-			data-lines = <24>;
+			data-lines = <16>;
 		};
 	};
 };
