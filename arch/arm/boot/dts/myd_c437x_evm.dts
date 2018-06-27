@@ -1431,7 +1431,7 @@
 };
 
 &rtc {
-	status = "disabled";
+	status = "okay";
 	ext-clk-src;
 };
 
