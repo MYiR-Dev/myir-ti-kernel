@@ -731,16 +731,36 @@
 			reg = <0x001E0000 0x00020000>;
 		};
 		partition@8 {
-			label = "NAND.kernel";
-			reg = <0x00200000 0x00800000>;
+			label = "NAND.u-boot.backup1";
+			reg = <0x00200000 0x00100000>;
 		};
 		partition@9 {
-			label = "NAND.rootfs";
-			reg = <0x00A00000 0x0D600000>;
+			label = "NAND.u-boot.backup2";
+			reg = <0x00300000 0x00100000>;
 		};
 		partition@10 {
+			label = "NAND.kernel";
+			reg = <0x00400000 0x00800000>;
+		};
+		partition@11 {
+			label = "NAND.kernel.backup1";
+			reg = <0x00C00000 0x00800000>;
+		};
+		partition@12 {
+			label = "NAND.recovery";
+			reg = <0x01400000 0x02000000>;
+		};
+		partition@13 {
+			label = "NAND.rootfs";
+			reg = <0x03400000 0x04000000>;
+		};
+		partition@14 {
+			label = "NAND.rootfs.backup1";
+			reg = <0x07400000 0x04000000>;
+		};
+		partition@15 {
 			label = "NAND.userdata";
-			reg = <0x0E000000 0>;
+			reg = <0x0B400000 0>;
 		};		
 	};
 };
