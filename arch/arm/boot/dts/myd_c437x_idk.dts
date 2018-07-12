@@ -639,7 +639,7 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&i2c0_pins_default>;
 	pinctrl-1 = <&i2c0_pins_sleep>;
-	clock-frequency = <400000>;
+	clock-frequency = <100000>;
 
 	ov2659@30 {
 		status="okay";
@@ -674,7 +674,8 @@
 		reg = <0x50>;
 	};
 
-	tps@24 {
+
+	tps65218: tps65218@24 {
 		compatible = "ti,tps65218";
 		reg = <0x24>;
 		interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
