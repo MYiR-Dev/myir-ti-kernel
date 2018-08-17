@@ -101,6 +101,7 @@
 		always-running;
 		hw_margin_ms = <1000>;
 	};
+	/* 7.0 inch, 800x480 resolution LCD, MYiR */
 			
 	backlight {
 		compatible = "pwm-backlight";
@@ -141,6 +142,45 @@
 		};
 	};
 	
+	/* 4.3 inch, 480x272 resolution LCD, MYiR */
+/*	
+	backlight {
+		compatible = "pwm-backlight";
+		pwms = <&ehrpwm0 0 50000 0>;
+		brightness-levels = <0 51 53 56 62 75 101 152 255>;
+		default-brightness-level = <8>;
+	};
+	panel {
+		compatible = "ti,tilcdc,panel";
+		status = "okay";
+		panel-info {
+			ac-bias           = <255>;
+			ac-bias-intrpt    = <0>;
+			dma-burst-sz      = <16>;
+			bpp               = <16>;
+			fdd               = <0x80>;
+			sync-edge         = <0>;
+			sync-ctrl         = <1>;
+			raster-order      = <0>;
+			fifo-th           = <0>;
+		};
+		display-timings {
+			480x272 {
+				clock-frequency = <9600000>;
+				hactive = <480>;
+				vactive = <272>;
+				hfront-porch = <2>;
+				hback-porch = <2>;
+				hsync-len = <41>;
+				vback-porch = <2>;
+				vfront-porch = <2>;
+				vsync-len = <10>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+			};
+		};
+	};
+*/	
 	sound {
 		compatible = "ti,sgtl5000-myd-audio";
 		ti,model = "AM335x-MYD";
@@ -608,7 +648,7 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart4_pins_default>;
 	pinctrl-1 = <&uart4_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 &uart5 {
 	pinctrl-names = "default", "sleep";
