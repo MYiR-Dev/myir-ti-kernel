@@ -209,6 +209,7 @@ static int at803x_probe(struct phy_device *phydev)
 	return 0;
 }
 
+#define AR8035_ON_BASE_BOARD 0x06
 static int at803x_config_init(struct phy_device *phydev)
 {
 	int ret;
@@ -216,7 +217,13 @@ static int at803x_config_init(struct phy_device *phydev)
 	ret = genphy_config_init(phydev);
 	if (ret < 0)
 		return ret;
-
+    if(of_machine_is_compatible("ti,myd_c335x"))
+    {
+    if(phydev->addr == AR8035_ON_BASE_BOARD)
+    {
+        phydev->supported &= ~(PHY_1000BT_FEATURES);
+        }
+    }
 	if (phydev->interface == PHY_INTERFACE_MODE_RGMII_TXID) {
 		ret = phy_write(phydev, AT803X_DEBUG_ADDR,
 				AT803X_DEBUG_SYSTEM_MODE_CTRL);
