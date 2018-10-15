@@ -902,35 +902,35 @@ static void usb1_init(int evm_id, int profile)
 static struct mtd_partition am335x_nand_partitions[] = {
 /* All the partition sizes are listed in terms of NAND block size */
 	{
-		.name           = "SPL",
+		.name           = "NAND.SPL",
 		.offset         = 0,			/* Offset = 0x0 */
 		.size           = SZ_128K,
 	},{
-		.name           = "SPL.backup1",
+		.name           = "NAND.SPL.backup1",
 		.offset         = MTDPART_OFS_APPEND,	/* Offset = 0x20000 */
 		.size           = SZ_128K,
 	},{
-		.name           = "SPL.backup2",
+		.name           = "NAND.SPL.backup2",
 		.offset         = MTDPART_OFS_APPEND,	/* Offset = 0x40000 */
 		.size           = SZ_128K,
 	},{
-		.name           = "SPL.backup3",
+		.name           = "NAND.SPL.backup3",
 		.offset         = MTDPART_OFS_APPEND,	/* Offset = 0x60000 */
 		.size           = SZ_128K,
 	},{
-		.name           = "U-Boot",
+		.name           = "NAND.u-boot",
 		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x80000 */
 		.size           = 15 * SZ_128K,
 	},{
-		.name           = "U-Boot Env",
+		.name           = "NAND.u-boot-env",
 		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x260000 */
 		.size           = 1 * SZ_128K,
 	},{
-		.name           = "Kernel",
+		.name           = "NAND.Kernel",
 		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x280000 */
 		.size           = 40 * SZ_128K,
 	},{
-		.name           = "File System",
+		.name           = "NAND.rootfs",
 		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x780000 */
 		.size           = MTDPART_SIZ_FULL,
 	},
@@ -972,7 +972,7 @@ static void evm_nand_init(int evm_id, int profile)
 		&am335x_nand_timings);
 	if (!pdata)
 		return;
-//	pdata->ecc_opt =OMAP_ECC_BCH8_CODE_HW;
+	pdata->ecc_opt =OMAP_ECC_BCH8_CODE_HW;
 	pdata->elm_used = true;
 	gpmc_device[0].pdata = pdata;
 	gpmc_device[0].flag = GPMC_DEVICE_NAND;
