@@ -242,12 +242,18 @@
 
 &am33xx_pinmux {
 	pinctrl-names = "default";
-	pinctrl-0 = <&volume_keys_s0>;
+	pinctrl-0 = <&volume_keys_s0 &eeprom_wp_pins>;
 
 	volume_keys_s0: volume_keys_s0 {
 		pinctrl-single,pins = <
 			0x108 (PIN_INPUT_PULLDOWN | MUX_MODE7)	/* (H16) gmii1_col.gpio3[0] */
 			0x144 (PIN_INPUT | MUX_MODE7 ) /* (H18) rmii1_refclk.gpio0[29] */
+		>;
+	};
+	
+	eeprom_wp_pins: eeprom_wp_pins {
+		pinctrl-single,pins = <
+		0x1e4 ( PIN_INPUT | MUX_MODE7 ) /* (C14) emu0.gpio3[7] */
 		>;
 	};
 	

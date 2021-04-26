@@ -101,6 +101,7 @@
 		always-running;
 		hw_margin_ms = <1000>;
 	};
+	/* 7.0 inch, 800x480 resolution LCD, MYiR */
 			
 	backlight {
 		compatible = "pwm-backlight";
@@ -141,6 +142,45 @@
 		};
 	};
 	
+	/* 4.3 inch, 480x272 resolution LCD, MYiR */
+/*	
+	backlight {
+		compatible = "pwm-backlight";
+		pwms = <&ehrpwm0 0 50000 0>;
+		brightness-levels = <0 51 53 56 62 75 101 152 255>;
+		default-brightness-level = <8>;
+	};
+	panel {
+		compatible = "ti,tilcdc,panel";
+		status = "okay";
+		panel-info {
+			ac-bias           = <255>;
+			ac-bias-intrpt    = <0>;
+			dma-burst-sz      = <16>;
+			bpp               = <16>;
+			fdd               = <0x80>;
+			sync-edge         = <0>;
+			sync-ctrl         = <1>;
+			raster-order      = <0>;
+			fifo-th           = <0>;
+		};
+		display-timings {
+			480x272 {
+				clock-frequency = <9600000>;
+				hactive = <480>;
+				vactive = <272>;
+				hfront-porch = <2>;
+				hback-porch = <2>;
+				hsync-len = <41>;
+				vback-porch = <2>;
+				vfront-porch = <2>;
+				vsync-len = <10>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+			};
+		};
+	};
+*/	
 	sound {
 		compatible = "ti,sgtl5000-myd-audio";
 		ti,model = "AM335x-MYD";
@@ -159,7 +199,7 @@
 
 &am33xx_pinmux {
 	pinctrl-names = "default";
-	pinctrl-0 = <&volume_keys_s0>;
+	pinctrl-0 = <&volume_keys_s0 &eeprom_wp_pins>;
 
 	volume_keys_s0: volume_keys_s0 {
 		pinctrl-single,pins = <
@@ -167,6 +207,13 @@
 		0x24 ( PIN_INPUT | MUX_MODE7 ) /* (T10) gpmc_ad9.gpio0[23] */
 		>;
 	};
+	
+	eeprom_wp_pins: eeprom_wp_pins {
+		pinctrl-single,pins = <
+		0x1e4 ( PIN_INPUT | MUX_MODE7 ) /* (C14) emu0.gpio3[7] */
+		>;
+	};
+	
 	
 	leds_pins: pinmux_leds_pins {
 		pinctrl-single,pins = <
@@ -671,6 +718,28 @@
             };
 
 };
+
+
+&gpio0 {
+    status = "okay";
+    ti,no-reset-on-init;
+};
+
+&gpio1 {
+    status = "okay";
+    ti,no-reset-on-init;
+};
+
+&gpio2 {
+    status = "okay";
+    ti,no-reset-on-init;
+};
+
+&gpio3 {
+    status = "okay";
+    ti,no-reset-on-init;
+};
+
 
 &usb {
 	status = "okay";
