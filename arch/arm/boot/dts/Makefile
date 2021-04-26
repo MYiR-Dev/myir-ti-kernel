@@ -418,8 +418,13 @@ dtb-$(CONFIG_SOC_AM33XX) += \
 	am335x-lxm.dtb \
 	am335x-chiliboard.dtb \
 	myd_c335x.dtb \
+	myt_c335x.dtb \
 	myd_c335x_emmc.dtb \
+	myt_c335x_emmc.dtb \
 	myd_j335x.dtb \
+	myt_j335x.dtb \
+	myd_j335x_emmc.dtb \
+	myt_j335x_emmc.dtb \
 	myd_y335x.dtb \
 	myd_y335x_emmc.dtb
 dtb-$(CONFIG_ARCH_OMAP4) += \
