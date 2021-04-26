@@ -135,6 +135,16 @@
 			default-state = "off";
 		};
 	};
+	watchdog: watchdog {
+		/* CAT823T */
+		compatible = "linux,wdt-gpio";
+		pinctrl-names = "default";
+		pinctrl-0 = <&watchdog_pins>;
+		gpios = <&gpio3 19 GPIO_ACTIVE_LOW>;
+		hw_algo = "toggle";
+		always-running;
+		hw_margin_ms = <1000>;
+	};
 	/* 7.0 inch, 800x480 resolution LCD, MYiR */
 	
 	backlight {
@@ -248,7 +258,13 @@
 			0x1A0 (PIN_OUTPUT_PULLDOWN | MUX_MODE7)
 		>;
 	};
-	
+
+	watchdog_pins: pinmux_watchdog_pins{
+		pinctrl-single,pins = <
+				0x1a4 ( PIN_INPUT | MUX_MODE7 ) /* (C13) mcasp0_fsr.gpio3[19] */
+			>;
+	};
+
 	i2c0_pins: pinmux_i2c0_pins {
 		pinctrl-single,pins = <
 			0x188 (PIN_INPUT_PULLUP | MUX_MODE0)	/* i2c0_sda.i2c0_sda */
@@ -897,6 +913,26 @@
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&dcan1_pins_default>;
+};
+
+&gpio0 {
+	status = "okay";
+	ti,no-reset-on-init;
+};
+
+&gpio1 {
+	status = "okay";
+	ti,no-reset-on-init;
+};
+
+&gpio2 {
+	status = "okay";
+	ti,no-reset-on-init;
+};
+
+&gpio3 {
+	status = "okay";
+	ti,no-reset-on-init;
 };
 
 &wkup_m3_ipc {
