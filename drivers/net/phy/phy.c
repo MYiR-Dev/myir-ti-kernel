@@ -104,11 +104,10 @@ static int phy_config_interrupt(struct phy_device *phydev, u32 interrupts)
  */
 static inline int phy_aneg_done(struct phy_device *phydev)
 {
-	int retval;
+	if (phydev->drv->aneg_done)
+		return phydev->drv->aneg_done(phydev);
 
-	retval = phy_read(phydev, MII_BMSR);
-
-	return (retval < 0) ? retval : (retval & BMSR_ANEGCOMPLETE);
+	return genphy_aneg_done(phydev);
 }
 
 /* A structure for mapping a particular speed and duplex
@@ -315,6 +314,7 @@ int phy_mii_ioctl(struct phy_device *phydev,
 	struct mii_ioctl_data *mii_data = if_mii(ifr);
 	u16 val = mii_data->val_in;
 
+//	printk("=== phy_mii_ioctl cmd=0x%x\r\n", cmd);
 	switch (cmd) {
 	case SIOCGMIIPHY:
 		mii_data->phy_id = phydev->addr;
@@ -435,7 +435,6 @@ static void phy_change(struct work_struct *work);
 void phy_start_machine(struct phy_device *phydev,
 		void (*handler)(struct net_device *))
 {
-	phydev->adjust_state = handler;
 
 	schedule_delayed_work(&phydev->state_queue, HZ);
 }
@@ -456,8 +455,6 @@ void phy_stop_machine(struct phy_device *phydev)
 	if (phydev->state > PHY_UP)
 		phydev->state = PHY_UP;
 	mutex_unlock(&phydev->lock);
-
-	phydev->adjust_state = NULL;
 }
 
 /**
@@ -742,6 +739,9 @@ out_unlock:
  */
 void phy_start(struct phy_device *phydev)
 {
+	bool do_resume = false;
+	int err = 0;
+
 	mutex_lock(&phydev->lock);
 
 	switch (phydev->state) {
@@ -752,11 +752,22 @@ void phy_start(struct phy_device *phydev)
 			phydev->state = PHY_UP;
 			break;
 		case PHY_HALTED:
+		/* make sure interrupts are re-enabled for the PHY */
+		err = phy_enable_interrupts(phydev);
+		if (err < 0)
+			break;
+
 			phydev->state = PHY_RESUMING;
+		do_resume = true;
+		break;
 		default:
 			break;
 	}
 	mutex_unlock(&phydev->lock);
+
+	/* if phy was suspended, bring the physical link up again */
+	if (do_resume)
+		phy_resume(phydev);
 }
 EXPORT_SYMBOL(phy_stop);
 EXPORT_SYMBOL(phy_start);
@@ -770,13 +781,13 @@ void phy_state_machine(struct work_struct *work)
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct phy_device *phydev =
 			container_of(dwork, struct phy_device, state_queue);
-	int needs_aneg = 0;
+	bool needs_aneg = false, do_suspend = false;
 	int err = 0;
 
 	mutex_lock(&phydev->lock);
 
-	if (phydev->adjust_state)
-		phydev->adjust_state(phydev->attached_dev);
+	if (phydev->drv->link_change_notify)
+		phydev->drv->link_change_notify(phydev);
 
 	switch(phydev->state) {
 		case PHY_DOWN:
@@ -785,7 +796,7 @@ void phy_state_machine(struct work_struct *work)
 		case PHY_PENDING:
 			break;
 		case PHY_UP:
-			needs_aneg = 1;
+		needs_aneg = true;
 
 			phydev->link_timeout = PHY_AN_TIMEOUT;
 
@@ -820,7 +831,7 @@ void phy_state_machine(struct work_struct *work)
 			} else if (0 == phydev->link_timeout--) {
 				int idx;
 
-				needs_aneg = 1;
+			needs_aneg = true;
 				/* If we have the magic_aneg bit,
 				 * we try again */
 				if (phydev->drv->flags & PHY_HAS_MAGICANEG)
@@ -851,6 +862,17 @@ void phy_state_machine(struct work_struct *work)
 				break;
 
 			if (phydev->link) {
+			if (AUTONEG_ENABLE == phydev->autoneg) {
+				err = phy_aneg_done(phydev);
+				if (err < 0)
+					break;
+
+				if (!err) {
+					phydev->state = PHY_AN;
+					phydev->link_timeout = PHY_AN_TIMEOUT;
+					break;
+				}
+			}
 				phydev->state = PHY_RUNNING;
 				netif_carrier_on(phydev->attached_dev);
 				phydev->adjust_link(phydev->attached_dev);
@@ -868,7 +890,7 @@ void phy_state_machine(struct work_struct *work)
 			} else {
 				if (0 == phydev->link_timeout--) {
 					phy_force_reduction(phydev);
-					needs_aneg = 1;
+				needs_aneg = true;
 				}
 			}
 
@@ -905,6 +927,7 @@ void phy_state_machine(struct work_struct *work)
 				phydev->link = 0;
 				netif_carrier_off(phydev->attached_dev);
 				phydev->adjust_link(phydev->attached_dev);
+			do_suspend = true;
 			}
 			break;
 		case PHY_RESUMING:
@@ -962,9 +985,27 @@ void phy_state_machine(struct work_struct *work)
 
 	if (needs_aneg)
 		err = phy_start_aneg(phydev);
+	else if (do_suspend)
+		phy_suspend(phydev);
 
 	if (err < 0)
 		phy_error(phydev);
 
 	schedule_delayed_work(&phydev->state_queue, PHY_STATE_TIME * HZ);
 }
+
+int phy_ethtool_set_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol)
+{
+	if (phydev->drv->set_wol)
+		return phydev->drv->set_wol(phydev, wol);
+
+	return -EOPNOTSUPP;
+}
+EXPORT_SYMBOL(phy_ethtool_set_wol);
+
+void phy_ethtool_get_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol)
+{
+	if (phydev->drv->get_wol)
+		phydev->drv->get_wol(phydev, wol);
+}
+EXPORT_SYMBOL(phy_ethtool_get_wol);
