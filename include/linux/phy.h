@@ -28,17 +28,26 @@
 
 #include <linux/atomic.h>
 
-#define PHY_BASIC_FEATURES	(SUPPORTED_10baseT_Half | \
-				 SUPPORTED_10baseT_Full | \
-				 SUPPORTED_100baseT_Half | \
-				 SUPPORTED_100baseT_Full | \
-				 SUPPORTED_Autoneg | \
+#define PHY_DEFAULT_FEATURES	(SUPPORTED_Autoneg | \
 				 SUPPORTED_TP | \
 				 SUPPORTED_MII)
 
-#define PHY_GBIT_FEATURES	(PHY_BASIC_FEATURES | \
-				 SUPPORTED_1000baseT_Half | \
+#define PHY_10BT_FEATURES	(SUPPORTED_10baseT_Half | \
+				 SUPPORTED_10baseT_Full)
+
+#define PHY_100BT_FEATURES	(SUPPORTED_100baseT_Half | \
+				 SUPPORTED_100baseT_Full)
+
+#define PHY_1000BT_FEATURES	(SUPPORTED_1000baseT_Half | \
 				 SUPPORTED_1000baseT_Full)
+
+#define PHY_BASIC_FEATURES	(PHY_10BT_FEATURES | \
+				 PHY_100BT_FEATURES | \
+				 PHY_DEFAULT_FEATURES)
+
+#define PHY_GBIT_FEATURES	(PHY_BASIC_FEATURES | \
+				 PHY_1000BT_FEATURES)
+
 
 /*
  * Set phydev->irq to PHY_POLL if interrupts are not supported,
@@ -50,6 +59,7 @@
 
 #define PHY_HAS_INTERRUPT	0x00000001
 #define PHY_HAS_MAGICANEG	0x00000002
+#define PHY_IS_INTERNAL		0x00000004
 
 /* Interface Mode definitions */
 typedef enum {
@@ -58,6 +68,7 @@ typedef enum {
 	PHY_INTERFACE_MODE_GMII,
 	PHY_INTERFACE_MODE_SGMII,
 	PHY_INTERFACE_MODE_TBI,
+	PHY_INTERFACE_MODE_REVMII,
 	PHY_INTERFACE_MODE_RMII,
 	PHY_INTERFACE_MODE_RGMII,
 	PHY_INTERFACE_MODE_RGMII_ID,
@@ -65,6 +76,10 @@ typedef enum {
 	PHY_INTERFACE_MODE_RGMII_TXID,
 	PHY_INTERFACE_MODE_RTBI,
 	PHY_INTERFACE_MODE_SMII,
+	PHY_INTERFACE_MODE_XGMII,
+	PHY_INTERFACE_MODE_MOCA,
+	PHY_INTERFACE_MODE_QSGMII,
+	PHY_INTERFACE_MODE_MAX,
 } phy_interface_t;
 
 
@@ -278,6 +293,7 @@ struct phy_device {
 	struct device dev;
 
 	u32 phy_id;
+	bool suspended;
 
 	enum phy_state state;
 
@@ -332,8 +348,6 @@ struct phy_device {
 	struct net_device *attached_dev;
 
 	void (*adjust_link)(struct net_device *dev);
-
-	void (*adjust_state)(struct net_device *dev);
 };
 #define to_phy_device(d) container_of(d, struct phy_device, dev)
 
@@ -363,6 +377,12 @@ struct phy_driver {
 	unsigned int phy_id_mask;
 	u32 features;
 	u32 flags;
+	const void *driver_data;
+
+	/*
+	 * Called to issue a PHY software reset
+	 */
+	int (*soft_reset)(struct phy_device *phydev);
 
 	/*
 	 * Called to initialize the PHY,
@@ -388,6 +408,9 @@ struct phy_driver {
 	 */
 	int (*config_aneg)(struct phy_device *phydev);
 
+	/* Determines the auto negotiation result */
+	int (*aneg_done)(struct phy_device *phydev);
+
 	/* Determines the negotiated speed and duplex */
 	int (*read_status)(struct phy_device *phydev);
 
@@ -405,6 +428,12 @@ struct phy_driver {
 
 	/* Clears up any memory if needed */
 	void (*remove)(struct phy_device *phydev);
+
+	/* Returns true if this is a suitable driver for the given
+	 * phydev.  If NULL, matching is based on phy_id and
+	 * phy_id_mask.
+	 */
+	int (*match_phy_device)(struct phy_device *phydev);
 
 	/* Handles SIOCSHWTSTAMP ioctl for hardware time stamping. */
 	int  (*hwtstamp)(struct phy_device *phydev, struct ifreq *ifr);
@@ -425,6 +454,30 @@ struct phy_driver {
 	 * is passed in 'type'.
 	 */
 	void (*txtstamp)(struct phy_device *dev, struct sk_buff *skb, int type);
+
+	/* Some devices (e.g. qnap TS-119P II) require PHY register changes to
+	 * enable Wake on LAN, so set_wol is provided to be called in the
+	 * ethernet driver's set_wol function. */
+	int (*set_wol)(struct phy_device *dev, struct ethtool_wolinfo *wol);
+
+	/* See set_wol, but for checking whether Wake on LAN is enabled. */
+	void (*get_wol)(struct phy_device *dev, struct ethtool_wolinfo *wol);
+
+	/*
+	 * Called to inform a PHY device driver when the core is about to
+	 * change the link state. This callback is supposed to be used as
+	 * fixup hook for drivers that need to take action when the link
+	 * state changes. Drivers are by no means allowed to mess with the
+	 * PHY device structure in their implementations.
+	 */
+	void (*link_change_notify)(struct phy_device *dev);
+
+	/* A function provided by a phy specific driver to override the
+	 * the PHY driver framework support for reading a MMD register
+	 * from the PHY. If not supported, return -1. This function is
+	 * optional for PHY specific drivers, if not provided then the
+	 * default MMD read function is used by the PHY framework.
+	 */
 
 	struct device_driver driver;
 };
@@ -471,10 +524,24 @@ static inline int phy_write(struct phy_device *phydev, u32 regnum, u16 val)
 	return mdiobus_write(phydev->bus, phydev->addr, regnum, val);
 }
 
+
+/**
+ * phy_interface_is_rgmii - Convenience function for testing if a PHY interface
+ * is RGMII (all variants)
+ * @phydev: the phy_device struct
+ */
+static inline bool phy_interface_is_rgmii(struct phy_device *phydev)
+{
+	return phydev->interface >= PHY_INTERFACE_MODE_RGMII &&
+		phydev->interface <= PHY_INTERFACE_MODE_RGMII_TXID;
+}
+
 int get_phy_id(struct mii_bus *bus, int addr, u32 *phy_id);
 struct phy_device* get_phy_device(struct mii_bus *bus, int addr);
 int phy_device_register(struct phy_device *phy);
 int phy_init_hw(struct phy_device *phydev);
+int phy_suspend(struct phy_device *phydev);
+int phy_resume(struct phy_device *phydev);
 struct phy_device * phy_attach(struct net_device *dev,
 		const char *bus_id, u32 flags, phy_interface_t interface);
 struct phy_device *phy_find_first(struct mii_bus *bus);
@@ -496,14 +563,19 @@ static inline int phy_read_status(struct phy_device *phydev) {
 	return phydev->drv->read_status(phydev);
 }
 
+int genphy_config_init(struct phy_device *phydev);
 int genphy_restart_aneg(struct phy_device *phydev);
 int genphy_config_aneg(struct phy_device *phydev);
+int genphy_aneg_done(struct phy_device *phydev);
 int genphy_update_link(struct phy_device *phydev);
 int genphy_read_status(struct phy_device *phydev);
 int genphy_suspend(struct phy_device *phydev);
 int genphy_resume(struct phy_device *phydev);
+int genphy_soft_reset(struct phy_device *phydev);
 void phy_driver_unregister(struct phy_driver *drv);
+void phy_drivers_unregister(struct phy_driver *drv, int n);
 int phy_driver_register(struct phy_driver *new_driver);
+int phy_drivers_register(struct phy_driver *new_driver, int n);
 void phy_state_machine(struct work_struct *work);
 void phy_start_machine(struct phy_device *phydev,
 		void (*handler)(struct net_device *));
@@ -523,9 +595,37 @@ int phy_register_fixup_for_id(const char *bus_id,
 int phy_register_fixup_for_uid(u32 phy_uid, u32 phy_uid_mask,
 		int (*run)(struct phy_device *));
 int phy_scan_fixups(struct phy_device *phydev);
+int phy_ethtool_set_wol(struct phy_device *phydev, struct ethtool_wolinfo *wol);
+void phy_ethtool_get_wol(struct phy_device *phydev,
+			 struct ethtool_wolinfo *wol);
+
 
 int __init mdio_bus_init(void);
 void mdio_bus_exit(void);
 
 extern struct bus_type mdio_bus_type;
+
+/**
+ * module_phy_driver() - Helper macro for registering PHY drivers
+ * @__phy_drivers: array of PHY drivers to register
+ *
+ * Helper macro for PHY drivers which do not do anything special in module
+ * init/exit. Each module may only use this macro once, and calling it
+ * replaces module_init() and module_exit().
+ */
+#define phy_module_driver(__phy_drivers, __count)			\
+static int __init phy_module_init(void)					\
+{									\
+	return phy_drivers_register(__phy_drivers, __count);		\
+}									\
+module_init(phy_module_init);						\
+static void __exit phy_module_exit(void)				\
+{									\
+	phy_drivers_unregister(__phy_drivers, __count);			\
+}									\
+module_exit(phy_module_exit)
+
+#define module_phy_driver(__phy_drivers)				\
+	phy_module_driver(__phy_drivers, ARRAY_SIZE(__phy_drivers))
+
 #endif /* __PHY_H */
