@@ -1724,6 +1724,10 @@ static int cpsw_switch_config_ioctl(struct net_device *ndev,
 static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 		int cmd)
 {
+	struct cpsw_priv *priv = netdev_priv(ndev);
+	int slave_no = cpsw_slave_phy_index(priv);
+
+	printk("=== cpsw_ndo_ioctl cmd=0x%x\r\n", cmd);
 	if (!(netif_running(ndev)))
 		return -EINVAL;
 
@@ -1733,9 +1737,11 @@ static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 		return cpsw_switch_config_ioctl(ndev, ifrq, cmd);
 
 	default:
-		return -EOPNOTSUPP;
+		break;
 	}
-	return 0;
+	if (!priv->slaves[slave_no].phy)
+		return -EOPNOTSUPP;
+	return phy_mii_ioctl(priv->slaves[slave_no].phy, ifrq, cmd);
 }
 
 static void cpsw_ndo_change_rx_flags(struct net_device *ndev, int flags)

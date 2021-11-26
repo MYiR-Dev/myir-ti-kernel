@@ -410,12 +410,60 @@ void phy_disconnect(struct phy_device *phydev)
 }
 EXPORT_SYMBOL(phy_disconnect);
 
+/**
+ * phy_poll_reset - Safely wait until a PHY reset has properly completed
+ * @phydev: The PHY device to poll
+ *
+ * Description: According to IEEE 802.3, Section 2, Subsection 22.2.4.1.1, as
+ *   published in 2008, a PHY reset may take up to 0.5 seconds.  The MII BMCR
+ *   register must be polled until the BMCR_RESET bit clears.
+ *
+ *   Furthermore, any attempts to write to PHY registers may have no effect
+ *   or even generate MDIO bus errors until this is complete.
+ *
+ *   Some PHYs (such as the Marvell 88E1111) don't entirely conform to the
+ *   standard and do not fully reset after the BMCR_RESET bit is set, and may
+ *   even *REQUIRE* a soft-reset to properly restart autonegotiation.  In an
+ *   effort to support such broken PHYs, this function is separate from the
+ *   standard phy_init_hw() which will zero all the other bits in the BMCR
+ *   and reapply all driver-specific and board-specific fixups.
+ */
+static int phy_poll_reset(struct phy_device *phydev)
+{
+	/* Poll until the reset bit clears (50ms per retry == 0.6 sec) */
+	unsigned int retries = 12;
+	int ret;
+
+	do {
+		msleep(50);
+		ret = phy_read(phydev, MII_BMCR);
+		if (ret < 0)
+			return ret;
+	} while (ret & BMCR_RESET && --retries);
+	if (ret & BMCR_RESET)
+		return -ETIMEDOUT;
+
+	/* Some chips (smsc911x) may still need up to another 1ms after the
+	 * BMCR_RESET bit is cleared before they are usable.
+	 */
+	msleep(1);
+	return 0;
+}
+
 int phy_init_hw(struct phy_device *phydev)
 {
-	int ret;
+	int ret = 0;
 
 	if (!phydev->drv || !phydev->drv->config_init)
 		return 0;
+
+	if (phydev->drv->soft_reset)
+		ret = phydev->drv->soft_reset(phydev);
+	else
+		ret = genphy_soft_reset(phydev);
+
+	if (ret < 0)
+		return ret;
 
 	ret = phy_scan_fixups(phydev);
 	if (ret < 0)
@@ -477,6 +525,8 @@ static int phy_attach_direct(struct net_device *dev, struct phy_device *phydev,
 	err = phy_init_hw(phydev);
 	if (err)
 		phy_detach(phydev);
+	else
+		phy_resume(phydev);
 
 	return err;
 }
@@ -524,6 +574,7 @@ void phy_detach(struct phy_device *phydev)
 {
 	phydev->attached_dev->phydev = NULL;
 	phydev->attached_dev = NULL;
+	phy_suspend(phydev);
 
 	/* If the device had no specific driver before (i.e. - it
 	 * was using the generic driver), we unbind the device
@@ -534,6 +585,45 @@ void phy_detach(struct phy_device *phydev)
 }
 EXPORT_SYMBOL(phy_detach);
 
+int phy_suspend(struct phy_device *phydev)
+{
+	struct phy_driver *phydrv = to_phy_driver(phydev->dev.driver);
+	struct ethtool_wolinfo wol = { .cmd = ETHTOOL_GWOL };
+	int ret = 0;
+
+	/* If the device has WOL enabled, we cannot suspend the PHY */
+	phy_ethtool_get_wol(phydev, &wol);
+	if (wol.wolopts)
+		return -EBUSY;
+
+	if (phydrv->suspend)
+		ret = phydrv->suspend(phydev);
+
+	if (ret)
+		return ret;
+
+	phydev->suspended = true;
+
+	return ret;
+}
+EXPORT_SYMBOL(phy_suspend);
+
+int phy_resume(struct phy_device *phydev)
+{
+	struct phy_driver *phydrv = to_phy_driver(phydev->dev.driver);
+	int ret = 0;
+
+	if (phydrv->resume)
+		ret = phydrv->resume(phydev);
+
+	if (ret)
+		return ret;
+
+	phydev->suspended = false;
+
+	return ret;
+}
+EXPORT_SYMBOL(phy_resume);
 
 /* Generic PHY support and helper functions */
 
@@ -708,6 +798,22 @@ int genphy_config_aneg(struct phy_device *phydev)
 EXPORT_SYMBOL(genphy_config_aneg);
 
 /**
+ * genphy_aneg_done - return auto-negotiation status
+ * @phydev: target phy_device struct
+ *
+ * Description: Reads the status register and returns 0 either if
+ *   auto-negotiation is incomplete, or if there was an error.
+ *   Returns BMSR_ANEGCOMPLETE if auto-negotiation is done.
+ */
+int genphy_aneg_done(struct phy_device *phydev)
+{
+	int retval = phy_read(phydev, MII_BMSR);
+
+	return (retval < 0) ? retval : (retval & BMSR_ANEGCOMPLETE);
+}
+EXPORT_SYMBOL(genphy_aneg_done);
+
+/**
  * genphy_update_link - update link status in @phydev
  * @phydev: target phy_device struct
  *
@@ -836,7 +942,29 @@ int genphy_read_status(struct phy_device *phydev)
 }
 EXPORT_SYMBOL(genphy_read_status);
 
-static int genphy_config_init(struct phy_device *phydev)
+
+/**
+ * genphy_soft_reset - software reset the PHY via BMCR_RESET bit
+ * @phydev: target phy_device struct
+ *
+ * Description: Perform a software PHY reset using the standard
+ * BMCR_RESET bit and poll for the reset bit to be cleared.
+ *
+ * Returns: 0 on success, < 0 on failure
+ */
+int genphy_soft_reset(struct phy_device *phydev)
+{
+	int ret;
+
+	ret = phy_write(phydev, MII_BMCR, BMCR_RESET);
+	if (ret < 0)
+		return ret;
+
+	return phy_poll_reset(phydev);
+}
+EXPORT_SYMBOL(genphy_soft_reset);
+
+int genphy_config_init(struct phy_device *phydev)
 {
 	int val;
 	u32 features;
@@ -877,11 +1005,12 @@ static int genphy_config_init(struct phy_device *phydev)
 			features |= SUPPORTED_1000baseT_Half;
 	}
 
-	phydev->supported = features;
-	phydev->advertising = features;
+	phydev->supported &= features;
+	phydev->advertising &= features;
 
 	return 0;
 }
+EXPORT_SYMBOL(genphy_config_init);
 int genphy_suspend(struct phy_device *phydev)
 {
 	int value;
@@ -1006,11 +1135,36 @@ int phy_driver_register(struct phy_driver *new_driver)
 }
 EXPORT_SYMBOL(phy_driver_register);
 
+int phy_drivers_register(struct phy_driver *new_driver, int n)
+{
+	int i, ret = 0;
+
+	for (i = 0; i < n; i++) {
+		ret = phy_driver_register(new_driver + i);
+		if (ret) {
+			while (i-- > 0)
+				phy_driver_unregister(new_driver + i);
+			break;
+		}
+	}
+	return ret;
+}
+EXPORT_SYMBOL(phy_drivers_register);
+
 void phy_driver_unregister(struct phy_driver *drv)
 {
 	driver_unregister(&drv->driver);
 }
 EXPORT_SYMBOL(phy_driver_unregister);
+
+void phy_drivers_unregister(struct phy_driver *drv, int n)
+{
+	int i;
+	for (i = 0; i < n; i++) {
+		phy_driver_unregister(drv + i);
+	}
+}
+EXPORT_SYMBOL(phy_drivers_unregister);
 
 static struct phy_driver genphy_driver = {
 	.phy_id		= 0xffffffff,

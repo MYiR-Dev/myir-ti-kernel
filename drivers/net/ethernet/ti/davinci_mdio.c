@@ -101,6 +101,9 @@ struct davinci_mdio_data {
 static void __davinci_mdio_reset(struct davinci_mdio_data *data)
 {
 	u32 mdio_in, div, mdio_out_khz, access_time;
+	/* set enable and clock divider */
+	__raw_writel(CONTROL_IDLE, &data->regs->control);
+	msleep(PHY_MAX_ADDR * data->access_time);
 
 	mdio_in = clk_get_rate(data->clk);
 	div = (mdio_in / data->pdata.bus_freq) - 1;
