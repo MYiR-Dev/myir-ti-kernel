@@ -97,6 +97,21 @@ config MICREL_PHY
 	---help---
 	  Supports the KSZ9021, VSC8201, KS8001 PHYs.
 
+config DP83848_PHY
+	tristate "Driver for Texas Instruments DP83848 PHY"
+	---help---
+	  Supports the DP83848 PHY.
+
+config DP83867_PHY
+	tristate "Drivers for Texas Instruments DP83867 Gigabit PHY"
+	---help---
+	  Currently supports the DP83867 PHY.
+
+config MOTORCOMM_PHY
+        tristate "Motorcomm PHYs"
+        ---help---
+          Supports the YT8511 PHYs.
+
 config FIXED_PHY
 	bool "Driver for MDIO Bus/PHY emulation with fixed speed/link PHYs"
 	depends on PHYLIB=y
