@@ -292,11 +292,10 @@ setup_dma_interrupt(unsigned lch,
 
 	if (!callback) {
 		edma_shadow0_write_array(ctlr, SH_IECR, lch >> 5,
-				BIT(lch & 0x1f));
-		
+			BIT(lch & 0x1f));
 		/* Added by MYIR, clear pre-irqs */
 		edma_shadow0_write_array(ctlr, SH_ICR, lch >> 5,
-			BIT(lch & 0x1f));
+		BIT(lch & 0x1f));
 	}
 
 	edma_cc[ctlr]->intr_data[lch].callback = callback;

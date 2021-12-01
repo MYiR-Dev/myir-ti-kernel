@@ -416,9 +416,6 @@ static int __init omap_hsmmc_pdata_init(struct omap2_hsmmc_info *c,
 		}
 		/* FALLTHROUGH */
 	case 3:
-		/* Broadcom sdio-wifi, no setpower handler, MYIR */
-		mmc->slots[0].set_power = nop_mmc_set_power;
-
 		if (mmc->slots[0].features & HSMMC_HAS_PBIAS) {
 			/* off-chip level shifting, or none */
 			mmc->slots[0].before_set_reg = hsmmc23_before_set_reg;

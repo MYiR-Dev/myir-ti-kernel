@@ -50,6 +50,12 @@
 #define PORT_MAX_8250	21	/* max port ID */
 
 /*
+ * Added by MYIR, for extent I2C UART suport.
+ */
+/* SC16IS7x2 I2C UART */
+#define PORT_SC16IS7X2  22
+
+/*
  * ARM specific type numbers.  These are not currently guaranteed
  * to be implemented, and will change in the future.  These are
  * separate so any additions to the old serial.c that occur before

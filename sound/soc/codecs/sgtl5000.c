@@ -834,8 +834,6 @@ static int sgtl5000_probe(struct snd_soc_codec *codec)
 {
 	int ret;
 
-	/*printk("--------sgtl5000_probe\n");*/
-
 	/* setup i2c data ops */
 	ret = snd_soc_codec_set_cache_io(codec, 16, 16, SND_SOC_I2C);
 	if (ret < 0) {

@@ -274,6 +274,18 @@ config SERIAL_8250_DW
 	  Selecting this option will enable handling of the extra features
 	  present in the Synopsys DesignWare APB UART.
 
+#
+# Added by MYIR, add two extent i2c uarts
+#
+config SERIAL_SC16IS7X2
+    tristate "SC16IS7x2 chips"
+#    depends on CONFIG_I2C && CONFIG_I2C_OMAP && GPIOLIB
+    select SERIAL_CORE
+    help
+      Selecting this option will add support for SC16IS7x2 i2c UARTs.
+      The GPIOs are exported via gpiolib interface.
+      If unsure, say N.
+
 comment "Non-8250 serial port support"
 
 config SERIAL_AMBA_PL010

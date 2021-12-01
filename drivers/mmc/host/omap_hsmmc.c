@@ -639,16 +639,6 @@ static void omap_hsmmc_set_clock(struct omap_hsmmc_host *host)
 
 	dev_dbg(mmc_dev(host->mmc), "Set clock to %uHz\n", ios->clock);
 
-	/* MYIR, limited mmc2 clock to 10 MHz for SDIO WiFi */
-	if (host->id == OMAP_MMC3_DEVID && ios->clock > 10000000) {
-		//printk(KERN_ERR "%s: Limited clock from %d to 10000000 Hz !!!\n",
-		//	dev_name(mmc_dev(host->mmc)), ios->clock);
-		//ios->clock = 10000000;
-		printk(KERN_ERR "%s: Set mmc clock to %d MHz\n", 
-		dev_name(mmc_dev(host->mmc)),
-		ios->clock/1000000);
-	}
-
 	clkdiv = calc_divisor(host, ios);
 	regval = OMAP_HSMMC_READ(host->base, HCTL);
 	/* Enable HSPE bit for high speed card */

@@ -71,6 +71,9 @@
 #include "devices.h"
 #include "hsmmc.h"
 
+/* Add by JBO for support sc16is752 */
+#include <linux/sc16is7x2.h>
+
 /* Convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
@@ -104,14 +107,30 @@ static int __init lcd_type_init(char* s) {
 }
 __setup("dispmode=", lcd_type_init);
 
+/* Add by JBO for handling uart2 setting */
+static bool uart2_to_uart5hwc = false;
+static void __init uart2_setup(char *s) {
+	if (s[0] == '1')
+		uart2_to_uart5hwc = true;
+}
+__setup("uart2_to_uart5hwc=", uart2_setup);
+
+/* Add by JBO for handling uart4 setting */
+static bool uart4_to_can1 = true;
+static void __init uart4_setup(char *s) {
+	if (s[0] == '0')
+		uart4_to_can1 = false;
+}
+__setup("uart4_to_can1=", uart4_setup);
+
 static char* display_mode = "hdmi480p";
 module_param(display_mode, charp, S_IRUGO);
 
+/* Modified by Conway. Added  'lcd7ir-k' and 'lcd7ic-k' */
 #define NUM_OF_LCDMODE 13
-enum  display_num{  lcd4i3  , lcd7i , lcd7ir ,lcd7ir_k  , lcd7ic , lcd7ic_k,  vga  ,  lvds  ,  hdmi640x480  ,
-                              hdmi480p   ,  hdmi1024x768  ,  hdmi720p  ,  hdmi1080i  };
-const char *display_num[]={ "lcd4i3" , "lcd7i" , "lcd7ir" , "lcd7ir-k" , "lcd7ic", "lcd7ic-k" , "vga" , "lvds" , "hdmi640x480" ,
-                            "hdmi480p"  , "hdmi1024x768" , "hdmi720p" , "hdmi1080i" };
+enum  display_num{  lcd4i3  , lcd7i , lcd7ir  ,lcd7ir_k  , lcd7ic,  lcd7ic_k, vga  ,  lvds  ,  hdmi640x480  ,
+                             hdmi480p   ,  hdmi1024x768  ,  hdmi720p  ,  hdmi1080i  };
+const char *display_num[]={ "lcd4i3" , "lcd7i" , "lcd7ir" ,"lcd7ir-k" , "lcd7ic","lcd7ic-k", "vga" , "lvds" , "hdmi640x480" ,  "hdmi480p"  , "hdmi1024x768" , "hdmi720p" , "hdmi1080i" };
 
 static const struct display_panel disp_panel = {
 	WVGA,
@@ -168,53 +187,53 @@ struct da8xx_lcdc_platform_data	am335x_lcdc_pdata[] = {
 		.controller_data	= &lcd_cfg,
 		.type			= "4.3inch_LCD",	
 	},{
-                .manu_name              = "InnoLux",
-                .controller_data        = &lcd_cfg,
-                .type                   = "7inch_LCD_RES",
+		.manu_name		= "InnoLux",
+		.controller_data	= &lcd_cfg,
+		.type			= "7inch_LCD_RES",
 	},{
 		.manu_name		= "InnoLux",
 		.controller_data	= &lcd_cfg,
 		.type			= "7inch_LCD_RES",
 	},{
-                .manu_name              = "InnoLux",
-                .controller_data        = &lcd_cfg,
-                .type                   = "7inch_LCD_RES",
-        },{
-                .manu_name              = "InnoLux",
-                .controller_data        = &lcd_cfg,
-                .type                   = "7inch_LCD_CAP",		
+		.manu_name		= "InnoLux",
+		.controller_data	= &lcd_cfg,
+		.type			= "7inch_LCD_RES",
 	},{
-                .manu_name              = "InnoLux",
-                .controller_data        = &lcd_cfg,
-                .type                   = "7inch_LCD_CAP",
-        },{
-	        .manu_name		= "InnoLux",
-        	.controller_data	= &lcd_cfg,
-	        .type			= "VGA",		
+		.manu_name		= "InnoLux",
+		.controller_data	= &lcd_cfg,
+		.type			= "7inch_LCD_CAP",		
 	},{
-	        .manu_name		= "InnoLux",
-        	.controller_data	= &lcd_cfg,
-	        .type			= "LVDS",	
+		.manu_name		= "InnoLux",
+		.controller_data	= &lcd_cfg,
+		.type			= "7inch_LCD_CAP",		
 	},{
-		.manu_name    		= "NXP HDMI",
-		.controller_data  	= &dvi_cfg,
-		.type      		= "nxp-640x480@60",
+		.manu_name		= "InnoLux",
+		.controller_data	= &lcd_cfg,
+		.type			= "VGA",		
+	},{
+		.manu_name		= "InnoLux",
+		.controller_data	= &lcd_cfg,
+		.type			= "LVDS",	
 	},{
 		.manu_name    		= "NXP HDMI",
 		.controller_data  	= &dvi_cfg,
-		.type      		= "nxp-720x480@60",
+		.type			= "nxp-640x480@60",
 	},{
 		.manu_name    		= "NXP HDMI",
 		.controller_data  	= &dvi_cfg,
-		.type      		= "1024x768@60",
+		.type			= "nxp-720x480@60",
 	},{
 		.manu_name    		= "NXP HDMI",
 		.controller_data  	= &dvi_cfg,
-		.type      		= "nxp-1280x720@60",
+		.type			= "1024x768@60",
 	},{
 		.manu_name    		= "NXP HDMI",
 		.controller_data  	= &dvi_cfg,
-		.type      		= "nxp-1920x1080@24",
+		.type			= "nxp-1280x720@60",
+	},{
+		.manu_name    		= "NXP HDMI",
+		.controller_data  	= &dvi_cfg,
+		.type			= "nxp-1920x1080@24",
 	},
 };
 
@@ -274,21 +293,12 @@ static struct omap2_hsmmc_info am335x_mmc[] __initdata = {
 		.gpio_wp        = -EINVAL,
 		.ocr_mask       = MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
 	},
-
-	{ /* Added for broadcom wifi, MYIR */
-		.mmc            = 3,	 /* mmc2 sdio wifi */
-		.caps			= MMC_CAP_4_BIT_DATA,
-		.gpio_cd		= -EINVAL,
-		.gpio_wp		= -EINVAL,
-		.nonremovable	= 1,
-		.name			= "bm-wifi",	
-		.ocr_mask       = MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
-	},
-
 	{
 		.mmc            = 0,	/* will be set at runtime */
 	},
-
+	{
+		.mmc            = 0,	/* will be set at runtime */
+	},
 	{}      /* Terminator */
 };
 
@@ -500,10 +510,17 @@ static struct pinmux_config i2c0_pin_mux[] = {
 
 static struct pinmux_config i2c1_pin_mux[] = {
 	{"spi0_d1.i2c1_sda",    OMAP_MUX_MODE2 | AM33XX_SLEWCTRL_SLOW |
-					AM33XX_PULL_ENBL | AM33XX_INPUT_EN},
+             	            AM33XX_PULL_ENBL | AM33XX_INPUT_EN | AM33XX_PULL_UP},
 	{"spi0_cs0.i2c1_scl",   OMAP_MUX_MODE2 | AM33XX_SLEWCTRL_SLOW |
-					AM33XX_PULL_ENBL | AM33XX_INPUT_EN},
+	                        AM33XX_PULL_ENBL | AM33XX_INPUT_EN | AM33XX_PULL_UP},
 	{NULL, 0},
+};
+
+/* Add by JBO */
+static struct pinmux_config i2c_gpio_pin_mux[] = {
+	{"spi0_d1.gpio0_4", OMAP_MUX_MODE7 | AM33XX_INPUT_EN},
+	{"spi0_cs0.gpio0_5", OMAP_MUX_MODE7 | AM33XX_INPUT_EN},
+	{NULL, 0 },
 };
 
 /* Module pin mux for mcasp0 */
@@ -536,37 +553,10 @@ static struct pinmux_config mmc0_cd_only_pin_mux[] = {
 	{NULL, 0},
 };
 
-
-/* Module pin mux for mmc2, broadcom wifi, MYIR */
-static struct pinmux_config mmc2_common_pin_mux[] = {
-	{"gpmc_ad15.mmc2_dat3",	OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
-	{"gpmc_ad14.mmc2_dat2",	OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
-	{"gpmc_ad13.mmc2_dat1",	OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
-	{"gpmc_ad12.mmc2_dat0",	OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
-	{"gpmc_clk.mmc2_clk",	OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
-	{"gpmc_csn3.mmc2_cmd",	OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
-	{NULL, 0},
-};
-static struct pinmux_config bcwifi_pin_mux[] = {
-	{"gpmc_ad8.gpio0_22",	OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},			/* dat4, broadcom wifi reset pin */
-	{"gpmc_ad9.gpio0_23",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},				/* dat5 */
-	{"gpmc_ad10.gpio0_26",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLDOWN},	/* dat6 */
-	{"gpmc_ad11.gpio0_27",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLDOWN},	/* dat7 */
-	{NULL, 0},
-};
-
-
-static struct pinmux_config d_can_pin_mux[] = {
-	{"uart0_ctsn.d_can1_tx", OMAP_MUX_MODE2 | AM33XX_PULL_ENBL},
-	{"uart0_rtsn.d_can1_rx", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLUP},
-        {NULL, 0},
-};
-
-
 /* pinmux for gpio based key */
 static struct pinmux_config gpio_keys_pin_mux[] = {
-	{"mii1_col.gpio3_0",    OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
-	{"rmii1_refclk.gpio0_29",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{"gpmc_ad8.gpio0_22", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+	{"gpmc_ad9.gpio0_23", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
 	{NULL, 0},
 };
 
@@ -574,14 +564,8 @@ static struct pinmux_config gpio_keys_pin_mux[] = {
 static struct pinmux_config gpio_led_mux[] = {
 	    {"mcasp0_aclkr.gpio3_18",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
         {"spi0_d0.gpio0_3",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
-//        {"gpmc_ad11.gpio0_27",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+        //{"gpmc_ad11.gpio0_27",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
-};
-
-/* pinmux for buzzer, MYIR */
-static struct pinmux_config gpio_buzzer_mux[] = {
-        {"ecap0_in_pwm0_out.gpio0_7",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
-    	{NULL, 0},
 };
 
 /* pinmux for watch dog timer input, MYIR */
@@ -590,16 +574,19 @@ static struct pinmux_config gpio_wdi_mux[] = {
         {NULL, 0},
 };
 
-/* pinmux for eeprom wp pin, MYIR */
+/* pinmux for e2pwp, MYIR */
 static struct pinmux_config gpio_e2pwp_mux[] = {
         {"emu0.gpio3_7",  OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
         {NULL, 0},
 };
 
-/* pinmux for LCD capacitive TP INT */
+/* pinmux for LCD capacitive TP INT
+       myd-am335x-y - spi0_cs1.gpio0_6
+	       myd-am335x-j - xdma_event_intr1.gpio0_20
+*/
 static struct pinmux_config gpio_tpint_mux[] = {
-        {"spi0_cs1.gpio0_6",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
-        {NULL, 0},
+	{"xdma_event_intr1.gpio0_20",  OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
+    {NULL, 0},
 };
 
 /*
@@ -682,6 +669,8 @@ static struct pinmux_config ehrpwm0_pin_mux[] = {
 static struct pinmux_config uart1_pin_mux[] = {
         {"uart1_rxd.uart1_rxd", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
         {"uart1_txd.uart1_txd", OMAP_MUX_MODE0 | AM33XX_PULL_ENBL},
+		{"uart1_ctsn.uart1_ctsn", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
+		{"uart1_rtsn.uart1_rtsn", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
         {NULL, 0},
 };
 /* Module pin mux for uart2 */
@@ -689,6 +678,12 @@ static struct pinmux_config uart2_pin_mux[] = {
         {"mii1_crs.uart2_rxd", OMAP_MUX_MODE6 | AM33XX_PIN_INPUT_PULLUP},
         {"mii1_rxerr.uart2_txd", OMAP_MUX_MODE6 | AM33XX_PULL_ENBL},
         {NULL, 0},
+};
+/* Module pin mux for uart2 to uart5 hw control -- Add by JBO */
+static struct pinmux_config uart2_to_uart5hwc_pin_mux[] = {
+	{"mii1_crs.uart5_ctsn", OMAP_MUX_MODE5 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii_rxerr.uart5_rtsn", OMAP_MUX_MODE5 | AM33XX_PIN_OUTPUT_PULLUP},
+	{NULL, 0},
 };
 
 /* Module pin mux for uart3 */
@@ -698,13 +693,32 @@ static struct pinmux_config uart3_pin_mux[] = {
         {NULL, 0},
 };
 
-/* Module pin mux for uart4 */
+/* Module pin mux for uart4 to can1 -- Add by JBO */
+static struct pinmux_config can1_pin_mux[] = {
+	{"uart0_ctsn.d_can1_tx", OMAP_MUX_MODE2 | AM33XX_PULL_ENBL},
+	{"uart0_rtsn.d_can1_rx", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLUP},
+	{NULL, 0},
+};
+/* Module pin mux for uart4 -- Add by JBO */
 static struct pinmux_config uart4_pin_mux[] = {
-        {"uart0_ctsn.uart4_rxd", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
-        {"uart0_rtsn.uart4_txd", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
-        {NULL, 0},
+	{"uart0_ctsn.uart4_rxd", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP },
+	{"uart0_rtsn.uart4_txd", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL },
+	{NULL, 0},
 };
 
+/* Module pin mux for uart5 */
+static struct pinmux_config uart5_pin_mux[] = {
+	{"mii1_col.uart5_rxd", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"rmii1_refclk.uart5_txd", OMAP_MUX_MODE3 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
+/* Pin mux for sc16is7x2 -- Add by JBO */
+static struct pinmux_config sc16is7x2_pin_mux[] = {
+	{"gpmc_ad10.gpio0_26", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
+	{"gpmc_ad11.gpio0_27", OMAP_MUX_MODE7 | AM33XX_INPUT_EN},
+	{NULL, 0 },
+};
 
 #define AM335XEVM_WLAN_PMENA_GPIO	GPIO_TO_PIN(1, 30)
 #define AM335XEVM_WLAN_IRQ_GPIO		GPIO_TO_PIN(3, 17)
@@ -808,8 +822,9 @@ static void display_init(int evm_id, int profile)
 		case lcd4i3:
 		case lcd7i:
 		case lcd7ir:
-		case lcd7ir_k:
 		case lcd7ic:
+		/* Modified by Conway. Added  'lcd7ir-k' and 'lcd7ic-k' */
+		case lcd7ir_k:
 		case lcd7ic_k:
 		case vga:
 		case lvds:
@@ -826,8 +841,9 @@ static void display_init(int evm_id, int profile)
 		case lcd4i3:
 		case lcd7i:
 		case lcd7ir:
-		case lcd7ir_k:
 		case lcd7ic:
+		/* Modified by Conway. Added  'lcd7ir-k' and 'lcd7ic-k' */
+		case lcd7ir_k:
 		case lcd7ic_k:
 		case hdmi640x480:
 		case hdmi720p:	
@@ -981,27 +997,6 @@ static void evm_nand_init(int evm_id, int profile)
 	omap_init_elm();
 }
 
-/* for ft5x0x cap ts driver, MYIR */
-static struct ft5x0x_ts_platform_data ts_plat_data = {
-       .irq            = OMAP_GPIO_IRQ(GPIO_TO_PIN(0, 6)),
-       .polling_mode   = 0,
-       .multi_touch    = 0,
-};
-
-static struct i2c_board_info am335x_i2c1_boardinfo[] = {
-	{
-		I2C_BOARD_INFO("sgtl5000", 0x0A),
-	},
-	{
-		I2C_BOARD_INFO("tda998x", 0x70),
-	},
-	{
-		   I2C_BOARD_INFO("ft5x06_ts", 0x38),
-		   .platform_data = &ts_plat_data,
-	},
-};
-
-
 /* Setup McASP 0 */
 static void mcasp0_init(int evm_id, int profile)
 {
@@ -1021,9 +1016,14 @@ static void uart1_init(int evm_id, int profile)
 
 static void uart2_init(int evm_id, int profile)
 {
-        /* Configure Uart2*/
-        setup_pin_mux(uart2_pin_mux);
-        return;
+    /* Configure Uart2*/
+	if (!uart2_to_uart5hwc) {
+		setup_pin_mux(uart2_pin_mux);
+	} else {
+		setup_pin_mux(uart2_to_uart5hwc_pin_mux);
+	}
+	
+    return;
 }
 
 static void uart3_init(int evm_id, int profile)
@@ -1035,28 +1035,32 @@ static void uart3_init(int evm_id, int profile)
 
 static void uart4_init(int evm_id, int profile)
 {
-        /* Configure Uart4*/
-        setup_pin_mux(uart4_pin_mux);
-        return;
+	if (!uart4_to_can1)
+		setup_pin_mux(uart4_pin_mux);
+	return;
 }
 
+static void uart5_init(int evm_id, int profile)
+{
+	/* Configure Uart5 */
+	setup_pin_mux(uart5_pin_mux);
+	return;
+}
 
 static void d_can_init(int evm_id, int profile)
 {
-	setup_pin_mux(d_can_pin_mux);
-	/* Instance Zero */
-	am33xx_d_can_init(1);
+	/* Configure can1 */
+	if (uart4_to_can1) {
+		setup_pin_mux(can1_pin_mux);
+		/* Instance One */
+		am33xx_d_can_init(1);
+	}
 }
 
 static void mmc0_init(int evm_id, int profile)
 {
 	setup_pin_mux(mmc0_common_pin_mux);
 	setup_pin_mux(mmc0_cd_only_pin_mux);
-
-	/* Added for broadcom wifi, MYIR */
-	setup_pin_mux(mmc2_common_pin_mux);
-	setup_pin_mux(bcwifi_pin_mux);
-
 
 	omap2_hsmmc_init(am335x_mmc);
 	return;
@@ -1065,20 +1069,20 @@ static void mmc0_init(int evm_id, int profile)
 /* Configure GPIOs for GPIO Keys */
 static struct gpio_keys_button gpio_buttons[] = {
         {
-                .code                   = KEY_HOME,
-                .gpio                   = GPIO_TO_PIN(0, 29),
+                .code                   = KEY_MENU,
+                .gpio                   = GPIO_TO_PIN(0, 22),
                 .active_low             = true,
                 .desc                   = "menu",
                 .type                   = EV_KEY,
-//              .wakeup                 = 1,
+                .wakeup                 = 1,
         },
         {
-                .code                   = KEY_ESC,
-                .gpio                   = GPIO_TO_PIN(3, 0),
+                .code                   = KEY_BACK,
+                .gpio                   = GPIO_TO_PIN(0, 23),
                 .active_low             = true,
                 .desc                   = "back",
                 .type                   = EV_KEY,
-//              .wakeup                 = 1,
+                .wakeup                 = 1,
         },
 };
 
@@ -1110,18 +1114,13 @@ static struct gpio_led gpio_leds[] = {
                 .name                   = "sys_led",
                 .default_trigger        = "heartbeat",
                 .gpio                   = GPIO_TO_PIN(3, 18),
-				.active_low				= 1,
         },{
                 .name                   = "user_led0",
                 .gpio                   = GPIO_TO_PIN(0, 3),
-				.active_low				= 1,
-        },
-
-/* MYIR, conflicts with mmc2_dat7
-	{
+        },/*{
 			    .name                   = "user_led1",
 			    .gpio                   = GPIO_TO_PIN(0, 27),
-	}, */
+		},*/
 };
 
 static struct gpio_led_platform_data gpio_led_info = {
@@ -1150,17 +1149,9 @@ static void gpio_led_init(int evm_id, int profile)
 /* MYIR gpio init */
 static void myir_gpio_init(int evm_id, int profile)
 {
-	printk(KERN_ERR"-- %s().\n", __func__);
-
-	/* GPIO0_7 for buzzer control */
-	setup_pin_mux(gpio_buzzer_mux);
-	gpio_request(GPIO_TO_PIN(0, 7), "buzzer");
-	gpio_direction_output(GPIO_TO_PIN(0, 7), 0);
-	gpio_export(GPIO_TO_PIN(0, 7), 0); /* direction may not changed */
-	
 	/* GPIO0_6 for capacitive TP INT pin */
-    setup_pin_mux(gpio_tpint_mux);
-
+	setup_pin_mux(gpio_tpint_mux);
+	
 #ifdef	CONFIG_MYIR_WDT
 	/* gpio3_8, already configured at MLO */
 	setup_pin_mux(gpio_wdi_mux);
@@ -1173,9 +1164,8 @@ static void myir_gpio_init(int evm_id, int profile)
     gpio_export(GPIO_TO_PIN(3, 7), 0); /* direction may not changed */
 }
 
-
 #ifdef	CONFIG_MYIR_WDT
-/* MYIR Watchdog device CAT823 */
+/* MYIR Watchdog device CAT823, GPIO3_8 is WDI on am335x-j */
 static struct myir_wdt_platdata myir_wdt_data = {
     .default_period_ms = 200,
     .gpio_pin = GPIO_TO_PIN(3, 8),
@@ -1194,6 +1184,7 @@ static void myir_wdt_init(int evm_id, int profile)
 }
 #endif /* CONFIG_MYIR_WDT */
 
+
 static struct evm_dev_cfg myd_am335x_dev_cfg[] = {
 	{evm_nand_init, DEV_ON_BASEBOARD, PROFILE_ALL},
 	{mmc0_init,	DEV_ON_BASEBOARD, PROFILE_ALL},
@@ -1208,18 +1199,18 @@ static struct evm_dev_cfg myd_am335x_dev_cfg[] = {
 	{usb1_init,     DEV_ON_BASEBOARD, PROFILE_ALL},	
 	{uart1_init, 	DEV_ON_BASEBOARD, PROFILE_ALL},
 	{uart2_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
-//	{uart3_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
+	{uart3_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
 	{uart4_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
+	{uart5_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
 	{d_can_init,    DEV_ON_BASEBOARD, PROFILE_ALL},
 	{gpio_keys_init,  DEV_ON_BASEBOARD, PROFILE_ALL},
 	{gpio_led_init,  DEV_ON_BASEBOARD, PROFILE_ALL},
 
 	{myir_gpio_init, DEV_ON_BASEBOARD, PROFILE_ALL},
-
 #ifdef CONFIG_MYIR_WDT
 	{myir_wdt_init, DEV_ON_BASEBOARD, PROFILE_ALL},
 #endif
-
+	
 	{NULL, 0, 0},
 };
 
@@ -1358,7 +1349,7 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 			.min_uV = 900000,
 			.max_uV = 3300000,
 			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
-				REGULATOR_CHANGE_STATUS),
+							   REGULATOR_CHANGE_STATUS),
 			.boot_on = 1,
 			.always_on = 1,
 		},
@@ -1372,7 +1363,7 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 			.min_uV = 900000,
 			.max_uV = 1500000,
 			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
-				REGULATOR_CHANGE_STATUS),
+							   REGULATOR_CHANGE_STATUS),
 			.boot_on = 1,
 			.always_on = 1,
 		},
@@ -1385,7 +1376,7 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 		.constraints = {
 			.min_uV = 1000000,
 			.max_uV = 3300000,
-//			.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+			//.valid_ops_mask = REGULATOR_CHANGE_STATUS,
 			.boot_on = 1,
 			.always_on = 1,
 		},
@@ -1398,8 +1389,8 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 		.constraints = {
 			.min_uV = 900000,
 			.max_uV = 3300000,
-//			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
-//				REGULATOR_CHANGE_STATUS),
+			//.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+			//				   REGULATOR_CHANGE_STATUS),
 			.boot_on = 1,
 			.always_on = 1,
 		},
@@ -1412,8 +1403,8 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 		.constraints = {
 			.min_uV = 1800000,
 			.max_uV = 3300000,
-//			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
-//				REGULATOR_CHANGE_STATUS),
+			//.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+			//				   REGULATOR_CHANGE_STATUS),
 			.boot_on = 1,
 			.always_on = 1,
 		},
@@ -1426,8 +1417,8 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 		.constraints = {
 			.min_uV = 1800000,
 			.max_uV = 3300000,
-//			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
-//				REGULATOR_CHANGE_STATUS),
+			//.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+			//				   REGULATOR_CHANGE_STATUS),
 			.boot_on = 1,
 			.always_on = 1,
 		},
@@ -1438,6 +1429,12 @@ static struct regulator_init_data tps65217_regulator_data[] = {
 
 static struct tps65217_board myir_tps65217_info = {
 	.tps65217_init_data = &tps65217_regulator_data[0],
+};
+
+static struct ft5x0x_ts_platform_data ts_plat_data = {
+	.irq            = OMAP_GPIO_IRQ(GPIO_TO_PIN(0, 20)),
+	.polling_mode   = 0,
+	.multi_touch    = 0,
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -1452,10 +1449,57 @@ static struct i2c_board_info __initdata am335x_i2c0_boardinfo[] = {
 		.platform_data  = &myir_tps65217_info,
 	},
 	{
+		I2C_BOARD_INFO("sgtl5000", 0x0A),
+	},
+	{
+		I2C_BOARD_INFO("ft5x06_ts", 0x38),
+		.platform_data = &ts_plat_data,
+	},
+	{
 		I2C_BOARD_INFO("at24", 0x50),
 		.platform_data = &board_eeprom,
 	},
 };
+
+/* sc16is7x2 -- Add by JBO */
+static const char *i2c_gpio_names[SC16IS7X2_NR_GPIOS] = {
+	"i2c-gpio200",
+	"i2c-gpio201",
+	"i2c-gpio202",
+	"i2c-gpio203",
+	"i2c-gpio204",
+	"i2c-gpio205",
+	"i2c-gpio206",
+	"i2c-gpio207",
+};
+static struct sc16is7x2_platform_data i2c_uart_gpio_data = {
+	.uartclk        = /*48000000*/11059200,/* crystal freq of sc16is7x2*/
+	.uart_base      = 0,
+	.gpio_base      = SC16IS7X2_GPIO_BASE,
+	.label          = NULL,
+	.names          = i2c_gpio_names,
+};
+
+static struct i2c_board_info am335x_i2c1_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("sc16is7x2", 0x48),
+		.platform_data  = &i2c_uart_gpio_data,
+		.irq = OMAP_GPIO_IRQ(GPIO_TO_PIN(0, 27)),
+	},
+};
+
+static void __init am335x_evm_i2c_init(void)
+{
+	setup_pin_mux(i2c0_pin_mux);
+	omap_register_i2c_bus(1, 100, am335x_i2c0_boardinfo,
+				ARRAY_SIZE(am335x_i2c0_boardinfo));
+
+	setup_pin_mux(sc16is7x2_pin_mux);
+	setup_pin_mux(i2c1_pin_mux);
+	omap_register_i2c_bus(2, 100, am335x_i2c1_boardinfo,
+							  ARRAY_SIZE(am335x_i2c1_boardinfo));
+
+}
 
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type	= MUSB_INTERFACE_ULPI,
@@ -1468,19 +1512,6 @@ static struct omap_musb_board_data musb_board_data = {
 	.power		= 500,
 	.instances	= 1,
 };
-
-
-static void __init am335x_evm_i2c_init(void)
-{
-//	evm_init_cpld();
-
-	setup_pin_mux(i2c0_pin_mux);
-	omap_register_i2c_bus(1, 100, am335x_i2c0_boardinfo,
-				ARRAY_SIZE(am335x_i2c0_boardinfo));
-	setup_pin_mux(i2c1_pin_mux);
-	omap_register_i2c_bus(2, 100, am335x_i2c1_boardinfo,
-				ARRAY_SIZE(am335x_i2c1_boardinfo));
-}
 
 static struct resource am335x_rtc_resources[] = {
 	{
@@ -1635,7 +1666,8 @@ static void __init am335x_evm_init(void)
 	am33xx_mux_init(board_mux);
 	omap_serial_init();
 	am335x_rtc_init();
-	clkout2_enable();
+	/* conflicts with cap ts int pin on myd-am335x-j, MYIR
+    clkout2_enable(); */
 	am335x_evm_i2c_init();
 	am335x_evm_setup();
 	omap_sdrc_init(NULL, NULL);
@@ -1648,24 +1680,6 @@ static void __init am335x_evm_init(void)
 	/* Create an alias for gfx/sgx clock */
 	if (clk_add_alias("sgx_ck", NULL, "gfx_fclk", NULL))
 		pr_warn("failed to create an alias: gfx_fclk --> sgx_ck\n");
-
-	/* Init Broadcom sdio-wifi, added by MYIR */
-	gpio_request_one(GPIO_TO_PIN(0, 22), GPIOF_OUT_INIT_LOW, "WIFI_RST");
-	gpio_export(GPIO_TO_PIN(0, 22), 0);
-	/* reset wifi chip here */
-	gpio_set_value(GPIO_TO_PIN(0, 22), 0);
-	mdelay(100);
-	gpio_set_value(GPIO_TO_PIN(0, 22), 1);
-	mdelay(50);
-	
-	gpio_request_one(GPIO_TO_PIN(0, 23), GPIOF_IN, "WLAN_HOST_WAKE");
-	//gpio_export(23, 1);
-	gpio_request_one(GPIO_TO_PIN(0, 26), GPIOF_IN, "EXT_PWN_REQ");
-	//gpio_export(26, 1); 
-
-/* Conflicts with led: user_led1 */
-	gpio_request_one(GPIO_TO_PIN(0, 27), GPIOF_IN, "EXT_SMPS_REQ");
-	//gpio_export(27, 1);
 }
 
 static void __init am335x_evm_map_io(void)
