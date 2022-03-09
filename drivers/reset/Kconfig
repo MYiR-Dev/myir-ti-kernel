@@ -1,0 +1,34 @@
+config ARCH_HAS_RESET_CONTROLLER
+	bool
+
+menuconfig RESET_CONTROLLER
+	bool "Reset Controller Support"
+	default y if ARCH_HAS_RESET_CONTROLLER
+	help
+	  Generic Reset Controller support.
+
+	  This framework is designed to abstract reset handling of devices
+	  via GPIOs or SoC-internal reset controller modules.
+
+	  If unsure, say no.
+
+config SYSCON_RESET
+	tristate "SYSCON Reset Driver"
+	depends on RESET_CONTROLLER
+	select MFD_SYSCON
+	help
+	  This enables the reset driver support for devices with memory-mapped
+	  reset registers as part of a syscon device node. If you wish to use
+	  the reset framework for such memory-mapped devices, say Y here.
+	  Otherwise, say N.
+
+config TI_SCI_RESET
+	tristate "TI System Control Interface (TI-SCI) reset driver"
+	depends on RESET_CONTROLLER
+	depends on TI_SCI_PROTOCOL
+	help
+	  This enables the reset driver support over TI System Control Interface
+	  for TI's Keystone family of SoCs. If you wish to use reset resources
+	  managed by the TI System Controller, say Y here. Otherwise, say N.
+
+source "drivers/reset/sti/Kconfig"

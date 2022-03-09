@@ -1,0 +1,191 @@
+QoS Tree Configuration
+----------------------
+
+The QoS implementation allows for an abstracted tree of scheduler nodes
+represented in device tree form.  For example:
+
+  +-----------+
+  |  inputs   |  . . .
+  +-----------+              +-----------+        +-----------+
+        |       |      |     |  inputs   |        |  inputs   |
+        +-------+------+     +-----------+        +-----------+
+                |                  |                    |
+        +--------------+   +---------------+    +--------------+
+        |     prio 0   |   |    prio 1     |    |    prio 2    |
+        |   unordered  |   |    inputs     |    |    inputs    |
+        +--------------+   +---------------+    +--------------+
+                |                 |                    |
+                +-----------------+--------------------+
+                                  |
+                        +--------------------+
+                        |  strict prio node  |
+                        +--------------------+
+                                  |
+			output to network transmit
+
+At each node, shaping and dropping parameters may be specified, within limits
+of the constraints outlined in this document.  The following sections detail
+the device tree attributes applicable for this implementation.
+
+QoS Node Attributes
+-------------------
+
+The following attributes are recognized within QoS configuration nodes:
+
+  - "strict-priority" and "weighted-round-robin"
+
+    e.g. strict-priority;
+
+    This attribute specifies the type of scheduling performed at a node.  It
+    is an error to specify both of these attributes in a particular node.  The
+    absence of both of these attributes defaults the node type to unordered
+    (first come first serve).
+
+  - "weight"
+
+    e.g. weight = <80>;
+
+    This attribute specifies the weight attached to the child node of a
+    weighted-round-robin node.  It is an error to specify this attribute on a
+    node whose parent is not a weighted-round-robin node.
+
+  - "priority"
+
+    e.g. priority = <1>;
+
+    This attribute specifies the priority attached to the child node of a
+    strict-priority node.  It is an error to specify this attribute on a
+    node whose parent is not a strict-priority node.  It is also an error for
+    child nodes of a strict-priority node to have the same priority specified.
+
+  - "byte-units" or "packet-units"
+
+    e.g. byte-units;
+
+    The presence of this attribute indicates that the scheduler accounts for
+    traffic in byte or packet units.  If this attribute is not specified for a
+    given node, the accounting mode is inherited from its parent node.  If
+    this attribute is not specified for the root node, the accounting mode
+    defaults to byte units.
+
+  - "output-rate"
+
+    e.g. output-rate = <31250000 25000>;
+
+    The first element of this attribute specifies the output shaped rate in
+    bytes/second or packets/second (depending on the accounting mode for the
+    node).  If this attribute is absent, it defaults to infinity (i.e., no
+    shaping).
+
+    The second element of this attribute specifies the maximum accumulated
+    credits in bytes or packets (depending on the accounting mode for the
+    node).  If this attribute is absent, it defaults to infinity (i.e.,
+    accumulate as many credits as possible).
+
+  - "overhead-bytes"
+
+    e.g. overhead-bytes = <24>;
+
+    This attribute specifies a per-packet overhead (in bytes) applied in the
+    byte accounting mode.  This can be used to account for framing overhead
+    on the wire.  This attribute is inherited from parent nodes if absent.
+    If not defined for the root node, a default value of 24 will be used.
+    This attribute is passed through by inheritence (but ignored) on packet
+    accounted nodes.
+
+  - "output-queue"
+
+    e.g. output-queue = <645>;
+
+    This specifies the QMSS queue on which output packets are pushed.  This
+    attribute must be defined only for the root node in the qos tree.  Child
+    nodes in the tree will ignore this attribute if specified.
+
+  - "input-queues"
+
+    e.g. input-queues = <8010 8065>;
+
+    This specifies a set of ingress queues that feed into a QoS node.
+    This attribute must be defined only for leaf nodes in the QoS tree.
+    Specifying input queues on non-leaf nodes is treated as an error.
+    The absence of input queues on a leaf node is also treated as an error.
+
+  - "stats-class"
+
+    e.g. stats-class = "linux-best-effort";
+
+    The stats-class attribute ties one or more input stage nodes to a set of
+    traffic statistics (forwarded/discarded bytes, etc.).  The system has a
+    limited set of statistics blocks (up to 48), and an attempt to exceed this
+    count is an error.  This attribute is legal only for leaf nodes, and a
+    stats-class attribute on an intermediate node will be treated as an error.
+
+  - "drop-policy"
+
+    e.g. drop-policy = "no-drop"
+
+    The drop-policy attribute specifies a drop policy to apply to a QoS
+    node (tail drop, random early drop, no drop, etc.) when the traffic
+    pattern exceeds specifies parameters.  The drop-policy parameters are
+    configured separately within device tree (see "Traffic Police Policy
+    Attributes section below).  This attribute defaults to "no drop" for
+    applicable input stage nodes.
+
+    If a node in the QoS tree specifies a drop-policy, it is an error if
+    any of its descendent nodes (children, children of children, ...) are of
+    weighted-round-robin or strict-priority types.
+
+
+1.5 Traffic Police Policy Attributes
+------------------------------------
+
+The following attributes are recognized within traffic drop policy nodes:
+
+  - "byte-units" or "packet-units"
+
+    e.g. byte-units;
+
+    The presence of this attribute indicates that the dropr accounts for
+    traffic in byte or packet units.  If this attribute is not specified, it
+    defaults to byte units.  Policies that use random early drop must be of
+    byte unit type.
+
+  - "limit"
+
+    e.g. limit = <10000>;
+
+    Instantaneous queue depth limit (in bytes or packets) at which tail drop
+    takes effect.  This may be specified in combination with random early
+    drop, which operates on average queue depth (instead of instantaneous).
+    The absence of this attribute, or a zero value for this attribute disables
+    tail drop behavior.
+
+  - "random-early-drop"
+
+    e.g. random-early-drop = <32768 65536 2 2000>;
+
+    The random-early-drop attribute specifies the following four parameters
+    in order:
+
+      - low threshold:	No packets are dropped when the average queue depth is
+			below this threshold (in bytes). This parameter must
+			be specified.
+
+      - high threshold:	All packets are dropped when the average queue depth
+			above this threshold (in bytes). This parameter is
+			optional, and defaults to twice the low threshold.
+
+      - max drop probability: the maximum drop probability
+
+      - half-life:	Specified in milli seconds. This is used to calculate
+			the average queue depth. This parameter
+			is optional and defaults to 2000.
+
+
+Internally Calculated
+---------------------
+ - throttle rate - might want to provide device tree override as well
+ - wrr/sp/be queue counts
+ - egress queue number (except final output)
+ - RNG seeds
+

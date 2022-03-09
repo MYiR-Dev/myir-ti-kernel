@@ -1,0 +1,219 @@
+/*
+* Copyright (C) 2015 MYIR Tech Limited. - http://www.myirtech.com
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License version 2 as
+* published by the Free Software Foundation.
+*/
+
+/* MYIR myd_c437x with HDMI output*/
+
+#include "myd_c437x_evm.dts"
+#include <dt-bindings/sound/sii9022-audio.h>
+
+/ {
+	aliases {
+		display0 = &hdmi;
+	};
+
+	hdmi: connector {
+		compatible = "hdmi-connector";
+		label = "hdmi";
+
+		type = "b";
+
+		port {
+			hdmi_connector_in: endpoint {
+				remote-endpoint = <&sii9022_out>;
+			};
+		};
+	};
+
+	sound@1 {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "HDMI";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&hdmi_dailink_master>;
+		simple-audio-card,frame-master = <&hdmi_dailink_master>;
+		hdmi_dailink_master: simple-audio-card,cpu {
+			sound-dai = <&mcasp0>;
+			system-clock-frequency = <24000000>;
+			system-clock-direction = "out";
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&sii9022>;
+			system-clock-frequency = <12000000>;
+		};
+	};
+};
+
+&am43xx_pinmux {
+
+	dss_pinctrl_default: dss_pinctrl_default {
+		pinctrl-single,pins = <
+			0x1cc ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AC24) cam1_data9.dss_data16 */
+			0x1c8 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AA19) cam0_data9.dss_data17 */
+			0x1c4 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AB19) cam0_data8.dss_data18 */
+			0x1c0 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AC20) cam0_pclk.dss_data19 */
+			0x1bc ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AD17) cam0_wen.dss_data20 */
+			0x1b8 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AC18) cam0_field.dss_data21 */
+			0x1b4 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AD18) cam0_vd.dss_data22 */
+			0x1b0 ( PIN_OUTPUT_PULLUP | MUX_MODE2 ) /* (AE17) cam0_hd.dss_data23 */
+			0x0a0 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS DATA 0 */
+			0x0a4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0a8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0ac (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0b0 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0b4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0b8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0bc (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0c0 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0c4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0c8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0cc (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0d0 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0d4 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0d8 (PIN_OUTPUT_PULLUP | MUX_MODE0)
+			0x0dc (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS DATA 15 */
+			0x0e0 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS VSYNC */
+			0x0e4 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS HSYNC */
+			0x0e8 (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS PCLK */
+			0x0ec (PIN_OUTPUT_PULLUP | MUX_MODE0) /* DSS AC BIAS EN */
+			0x26c ( PIN_OUTPUT_PULLUP | MUX_MODE7 ) /* (T23) spi2_cs0.gpio3[25]  GPIO 3_25 for LCD_RESET */
+		>;
+	};
+
+	dss_pinctrl_sleep: dss_pinctrl_sleep {
+		pinctrl-single,pins = <
+			0x1cc (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1c8 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1c4 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1c0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1bc (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1b8 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1b4 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x1b0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0A0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0A4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0A8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0AC (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0B0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0B4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0B8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0BC (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0C0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0C4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0C8 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0CC (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0D0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0D4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0D8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | PULL_DISABLE | MUX_MODE7)
+			0x0DC (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0E0 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0E4 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0E8 (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+			0x0EC (DS0_PULL_UP_DOWN_EN | PIN_INPUT_PULLDOWN | MUX_MODE7)
+		>;
+	};
+
+	vpfe1_pins_default: vpfe1_pins_default {
+		pinctrl-single,pins = <
+//			0x1CC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data9 mode 0*/
+			0x1D0 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data8 mode 0*/
+			0x1D4 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_hd mode 0*/
+			0x1D8 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_vd mode 0*/
+			0x1DC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_pclk mode 0*/
+			0x1E8 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data0 mode 0*/
+			0x1EC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data1 mode 0*/
+			0x1F0 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data2 mode 0*/
+			0x1F4 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data3 mode 0*/
+			0x1F8 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data4 mode 0*/
+			0x1FC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data5 mode 0*/
+			0x200 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data6 mode 0*/
+			0x204 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data7 mode 0*/
+		>;
+	};
+
+	vpfe1_pins_sleep: vpfe1_pins_sleep {
+		pinctrl-single,pins = <
+//			0x1CC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data9 mode 0*/
+			0x1D0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data8 mode 0*/
+			0x1D4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_hd mode 0*/
+			0x1D8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_vd mode 0*/
+			0x1DC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_pclk mode 0*/
+			0x1E8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data0 mode 0*/
+			0x1EC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data1 mode 0*/
+			0x1F0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data2 mode 0*/
+			0x1F4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data3 mode 0*/
+			0x1F8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data4 mode 0*/
+			0x1FC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data5 mode 0*/
+			0x200 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data6 mode 0*/
+			0x204 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data7 mode 0*/
+		>;
+	};
+
+};
+
+&lcd_bl {
+	status = "disabled";
+};
+
+&sound0 {
+	status = "disabled";
+};
+
+&i2c1 {
+	sii9022: sii9022@3b {
+		#sound-dai-cells = <0>;
+		compatible = "sil,sii9022";
+		reg = <0x3b>;
+
+		i2s-fifo-routing = <
+			(ENABLE_BIT|CONNECT_SD0)
+			0
+			0
+			0
+		>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				sii9022_in: endpoint {
+					remote-endpoint = <&dpi_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				sii9022_out: endpoint {
+					remote-endpoint = <&hdmi_connector_in>;
+				};
+			};
+		};
+	};
+};
+
+&dss {
+	port {
+		dpi_out: endpoint@0 {
+			remote-endpoint = <&sii9022_in>;
+			data-lines = <24>;
+		};
+	};
+};
+
+&i2c0 {
+        ov2659@30 {
+		status="disabled";
+	};
+};
+
+&vpfe0 {
+	status = "disabled";
+};

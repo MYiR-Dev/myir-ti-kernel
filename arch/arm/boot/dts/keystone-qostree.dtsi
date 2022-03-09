@@ -1,0 +1,415 @@
+/*
+ * Common DT bindings for Network QoS on Keystone SoCs
+ *
+ * Copyright (C) 2015 Texas Instruments, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+droppolicies: default-drop-policies {
+	no-drop {
+		default;
+		packet-units;
+		limit = <0>;
+	};
+	tail-drop-64pkts {
+		packet-units;
+		limit = <64>;
+	};
+	tail-drop-100pkts {
+		packet-units;
+		limit = <100>;
+	};
+	tail-drop-32kb {
+		byte-units;
+		limit = <32768>;
+	};
+	tail-drop-64kb {
+		byte-units;
+		limit = <65536>;
+	};
+	red-32kb-128kb {
+		byte-units;
+		limit = <196608>;
+		random-early-drop = <32768 131072 2 2000>;
+	};
+	red-32kb-64kb {
+		byte-units;
+		limit = <131072>;
+		random-early-drop = <32768 65536 2 2000>;
+	};
+	all-drop {
+		byte-units;
+		limit = <0>;
+	};
+};
+
+qostree0: qos-tree-0 {
+	strict-priority;		/* or weighted-round-robin */
+	byte-units;			/* packet-units or byte-units */
+	output-rate = <31250000 25000>;
+	overhead-bytes = <24>;		/* valid only if units are bytes */
+
+	high-priority {
+		byte-units;		/* packet-units or byte-units */
+		priority = <0>;
+		signaling {
+			input-queues = <8046 8071>;
+			stats-class  = "fastpath-hp";
+			drop-policy = "no-drop";
+		};
+		linux-signaling {
+			input-queues = <8077>;
+			stats-class  = "linux-hp";
+			drop-policy = "no-drop";
+		};
+	};
+
+	wrr-aggregator {
+		weighted-round-robin;
+		priority = <1>;
+		byte-units;			/* packet-units or byte-units */
+		output-rate = <25000000 25000>;
+		overhead-bytes = <24>;		/* valid only if units are
+						   bytes */
+		wrr-cos0 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <20>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <8010 8065>;
+				stats-class  = "cos0";
+			};
+			3g-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <8012>;
+				stats-class  = "cos0";
+			};
+			wifi-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <8014>;
+				stats-class  = "cos0";
+			};
+			linux-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <8073>;
+				stats-class  = "linux-cos0";
+			};
+		};
+		wrr-cos1 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <40>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <8018 8066>;
+				stats-class  = "cos1";
+			};
+			3g-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <8020>;
+				stats-class  = "cos1";
+			};
+			wifi-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <8022>;
+				stats-class  = "cos1";
+			};
+			linux-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <8074>;
+				stats-class  = "linux-cos1";
+			};
+		};
+		wrr-cos2 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <60>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <8026 8067>;
+				stats-class  = "cos2";
+			};
+			3g-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <8028>;
+				stats-class  = "cos2";
+			};
+			wifi-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <8030>;
+				stats-class  = "cos2";
+			};
+			linux-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <8075>;
+				stats-class  = "linux-cos2";
+			};
+		};
+		wrr-cos3 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <80>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <8034 8068>;
+				stats-class  = "cos3";
+			};
+			3g-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <8036>;
+				stats-class  = "cos3";
+			};
+			wifi-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <8038>;
+				stats-class  = "cos3";
+			};
+			linux-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <8076>;
+				stats-class  = "linux-cos3";
+			};
+		};
+	};
+
+	best-effort {
+		byte-units;		/* packet-units or byte-units */
+		priority = <2>;
+		drop-policy = "tail-drop-64kb";
+		fastpath-best-effort {
+			/* queues between 8000 to 8063 not assigned
+			   in the above nodes are assigned below as
+			   unclassified DSCP values
+			   queues between 8064 to 8071 not assigned
+			   in the above nodes are assigned below as
+			   unclassified VLAN p-bit values */
+			input-queues = <8000 8001 8002 8003 8004
+					8005 8006 8007 8008 8009 8011
+					8013 8015 8016 8017 8019 8021
+					8023 8024 8025 8027 8029 8031
+					8032 8033 8035 8037 8039 8040
+					8041 8042 8043 8044 8045 8047
+					8048 8049 8050 8051 8052 8053
+					8054 8055 8056 8057 8058 8059
+					8060 8061 8062 8063
+					8064 8069 8070>;
+			stats-class  = "fastpath-be";
+		};
+		linux-best-effort {
+			input-queues = <8072>;
+			stats-class  = "linux-be";
+		};
+	};
+};
+
+qostree1: qos-tree-1 {
+	strict-priority;		/* or weighted-round-robin */
+	byte-units;			/* packet-units or byte-units */
+	output-rate = <31250000 25000>;
+	overhead-bytes = <24>;		/* valid only if units are bytes */
+
+	high-priority {
+		byte-units;		/* packet-units or byte-units */
+		priority = <0>;
+		signaling {
+			input-queues = <6446 6471>;
+			stats-class  = "fastpath-hp";
+			drop-policy = "no-drop";
+		};
+		linux-signaling {
+			input-queues = <6477>;
+			stats-class  = "linux-hp";
+			drop-policy = "no-drop";
+		};
+	};
+
+	wrr-aggregator {
+		weighted-round-robin;
+		priority = <1>;
+		byte-units;			/* packet-units or byte-units */
+		output-rate = <25000000 25000>;
+		overhead-bytes = <24>;		/* valid only if units are
+						   bytes */
+		wrr-cos0 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <20>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <6410 6465>;
+				stats-class  = "cos0";
+			};
+			3g-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <6412>;
+				stats-class  = "cos0";
+			};
+			wifi-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <6414>;
+				stats-class  = "cos0";
+			};
+			linux-cos0 {
+				drop-policy = "tail-drop-32kb";
+				weight = <5>;
+				input-queues = <6473>;
+				stats-class  = "linux-cos0";
+			};
+		};
+		wrr-cos1 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <40>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <6418 6466>;
+				stats-class  = "cos1";
+			};
+			3g-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <6420>;
+				stats-class  = "cos1";
+			};
+			wifi-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <6422>;
+				stats-class  = "cos1";
+			};
+			linux-cos1 {
+				drop-policy = "red-32kb-128kb";
+				weight = <10>;
+				input-queues = <6474>;
+				stats-class  = "linux-cos1";
+			};
+		};
+		wrr-cos2 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <60>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <6426 6467>;
+				stats-class  = "cos2";
+			};
+			3g-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <6428>;
+				stats-class  = "cos2";
+			};
+			wifi-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <6430>;
+				stats-class  = "cos2";
+			};
+			linux-cos2 {
+				drop-policy = "red-32kb-64kb";
+				weight = <15>;
+				input-queues = <6475>;
+				stats-class  = "linux-cos2";
+			};
+		};
+		wrr-cos3 {
+			weighted-round-robin;	/* or weighted-round-robin */
+			byte-units;		/* packet-units or byte-units */
+			weight = <80>;
+			overhead-bytes = <24>;	/* valid only if units are
+						   bytes */
+			4g-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <6434 6468>;
+				stats-class  = "cos3";
+			};
+			3g-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <6436>;
+				stats-class  = "cos3";
+			};
+			wifi-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <6438>;
+				stats-class  = "cos3";
+			};
+			linux-cos3 {
+				drop-policy = "tail-drop-64kb";
+				weight = <20>;
+				input-queues = <6476>;
+				stats-class  = "linux-cos3";
+			};
+		};
+	};
+
+	best-effort {
+		byte-units;		/* packet-units or byte-units */
+		priority = <2>;
+		drop-policy = "tail-drop-64kb";
+		fastpath-best-effort {
+			/* queues between 6000 to 6063 not assigned
+			   in the above nodes are assigned below as
+			   unclassified DSCP values
+			   queues between 6064 to 6071 not assigned
+			   in the above nodes are assigned below as
+			   unclassified VLAN p-bit values */
+			input-queues = <6400 6401 6402 6403 6404
+					6405 6406 6407 6408 6409 6411
+					6413 6415 6416 6417 6419 6421
+					6423 6424 6425 6427 6429 6431
+					6432 6433 6435 6437 6439 6440
+					6441 6442 6443 6444 6445 6447
+					6448 6449 6450 6451 6452 6453
+					6454 6455 6456 6457 6458 6459
+					6460 6461 6462 6463
+					6464 6469 6470>;
+			stats-class  = "fastpath-be";
+		};
+		linux-best-effort {
+			input-queues = <6472>;
+			stats-class  = "linux-be";
+		};
+	};
+};

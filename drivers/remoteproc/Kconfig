@@ -1,0 +1,127 @@
+menu "Remoteproc drivers"
+
+# REMOTEPROC gets selected by whoever wants it
+config REMOTEPROC
+	tristate
+	depends on HAS_DMA
+	select CRC32
+	select FW_LOADER
+	select VIRTIO
+	select VIRTUALIZATION
+
+config OMAP_REMOTEPROC
+	tristate "OMAP remoteproc support"
+	depends on HAS_DMA
+	depends on ARCH_OMAP4 || SOC_OMAP5 || SOC_DRA7XX
+	depends on OMAP_IOMMU
+	depends on CMA
+	select REMOTEPROC
+	select MAILBOX
+	select OMAP2PLUS_MBOX
+	select RPMSG
+	help
+	  Say y here to support OMAP's remote processors (dual M3
+	  and DSP on OMAP4) via the remote processor framework.
+
+	  Currently only supported on OMAP4.
+
+	  Usually you want to say y here, in order to enable multimedia
+	  use-cases to run on your platform (multimedia codecs are
+	  offloaded to remote DSP processors using this framework).
+
+	  It's safe to say n here if you're not interested in multimedia
+	  offloading or just want a bare minimum kernel.
+
+config OMAP_REMOTEPROC_WATCHDOG
+	bool "OMAP remoteproc watchdog timer"
+	depends on OMAP_REMOTEPROC
+	default n
+	help
+	  Say Y here to enable watchdog timer for remote processors.
+
+	  This option controls the watchdog functionality for the remote
+	  processors in OMAP. Dedicated OMAP DMTimers are used by the remote
+	  processors and triggers the timer interrupt upon a watchdog
+	  detection.
+
+config STE_MODEM_RPROC
+	tristate "STE-Modem remoteproc support"
+	depends on HAS_DMA
+	select REMOTEPROC
+	default n
+	help
+	  Say y or m here to support STE-Modem shared memory driver.
+	  This can be either built-in or a loadable module.
+	  If unsure say N.
+
+config WKUP_M3_RPROC
+	tristate "AMx3xx Wakeup M3 remoteproc support"
+	depends on SOC_AM33XX || SOC_AM43XX
+	select REMOTEPROC
+	help
+	  Say y here to support Wakeup M3 remote processor on TI AM33xx
+	  and AM43xx family of SoCs.
+
+	  Required for Suspend-to-RAM on AM33xx and AM43xx SoCs. Also needed
+	  for deep CPUIdle states on AM33xx SoCs. Allows for loading of the
+	  firmware onto these remote processors.
+	  If unsure say N.
+
+config DA8XX_REMOTEPROC
+	tristate "DA8xx/OMAP-L13x remoteproc support"
+	depends on ARCH_DAVINCI_DA8XX
+	select CMA if MMU
+	select REMOTEPROC
+	select RPMSG
+	help
+	  Say y here to support DA8xx/OMAP-L13x remote processors via the
+	  remote processor framework.
+
+	  You want to say y here in order to enable AMP
+	  use-cases to run on your platform (multimedia codecs are
+	  offloaded to remote DSP processors using this framework).
+
+	  This module controls the name of the firmware file that gets
+	  loaded on the DSP.  This file must reside in the /lib/firmware
+	  directory.  It can be specified via the module parameter
+	  da8xx_fw_name=<filename>, and if not specified will default to
+	  "rproc-dsp-fw".
+
+	  It's safe to say n here if you're not interested in multimedia
+	  offloading.
+
+config PRUSS_REMOTEPROC
+	tristate "TI PRUSS remoteproc support"
+	depends on HAS_DMA && (SOC_AM33XX || SOC_AM43XX || SOC_DRA7XX)
+	select REMOTEPROC
+	select MAILBOX
+	select OMAP2PLUS_MBOX
+	select RPMSG
+	default n
+	help
+	  Support for TI PRU-ICSS remote processors via the remote processor
+	  framework.
+
+	  Currently supported on AM33xx SoCs.
+
+	  Say Y or M here to support the Programmable Realtime Unit (PRU)
+	  processors on various TI SoCs. It's safe to say N here if you're
+	  not interested in the PRU or if you are unsure.
+	  If unsure say N.
+
+config KEYSTONE_REMOTEPROC
+	tristate "Keystone Remoteproc support"
+	depends on ARCH_KEYSTONE
+	depends on RESET_CONTROLLER
+	depends on UIO
+	select REMOTEPROC
+	select RPMSG
+	help
+	  Say y here here to support Keystone remote processors (DSP)
+	  via the remote processor framework. The drivers support a user-land driven
+	  interface to the remoteprocessor download
+
+	  It's safe to say n here if you're not interested in multimedia
+	  offloading or just want a bare minimum kernel.
+
+endmenu
